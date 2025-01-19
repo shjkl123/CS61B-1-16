@@ -138,6 +138,15 @@ public class Model extends Observable {
      * */
     public static boolean emptySpaceExists(Board b) {
         // TODO: Fill in this function.
+        int i;
+        int j;
+        for(i = 0; i < b.size(); i++) {
+            for(j = 0; j < b.size(); j++){
+                if(b.tile(j, i) == null){
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
