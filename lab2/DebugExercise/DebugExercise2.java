@@ -42,7 +42,8 @@ public class DebugExercise2 {
     public static int[] arrayMax(int[] a, int[] b) {
         if (a.length != b.length) {
             System.out.println("ERROR! Arrays don't match");
-            return null;
+            //return null;
+            System.exit(0);
         }
         int[] returnArray = new int[a.length];
         for (int i = 0; i < a.length; i += 1) {

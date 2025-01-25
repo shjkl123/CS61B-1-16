@@ -12,10 +12,12 @@ public class DebugExercise2Test {
         int [] a5 = {0, 0, 0, 0};
         int [] a6 = {0, -2, -6, 0};
         int [] a7 = {0, -1, -2, -3};
+        int [] a8 = {0, 0, 0};
         assertEquals(10, DebugExercise2.sumOfElementwiseMaxes(a1, a2));
         assertEquals(13, DebugExercise2.sumOfElementwiseMaxes(a3, a4));
         assertEquals(0, DebugExercise2.sumOfElementwiseMaxes(a5, a6));
         assertEquals(-3, DebugExercise2.sumOfElementwiseMaxes(a6, a7));
+        assertEquals("ERROR! Arrays don't match", DebugExercise2.sumOfElementwiseMaxes(a7, a8));
     }
 }
 
