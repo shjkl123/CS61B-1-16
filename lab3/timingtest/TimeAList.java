@@ -31,11 +31,10 @@ public class TimeAList {
             AList<Integer> s = new AList<>();
             Stopwatch sw = new Stopwatch();
             for (int j = 0; j < i; j++) {
-                s.addLast(1);
+                s.addLast(j);
             }
-            double timeInseconds = sw.elapsedTime();
             Ns.addLast(i);
-            Nt.addLast(timeInseconds);
+            Nt.addLast(sw.elapsedTime());
             Nop.addLast(i);
         }
         printTimingTable(Ns, Nt, Nop);

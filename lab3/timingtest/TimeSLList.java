@@ -32,7 +32,7 @@ public class TimeSLList {
                 s.addLast(1);
             }
             Stopwatch sw = new Stopwatch();
-            for(int j = 0; j < 1000; j++) {
+            for(int j = 0; j < 10000; j++) {
                 int x = s.getLast();
             }
             double timeInsecond = sw.elapsedTime();
