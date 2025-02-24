@@ -18,7 +18,7 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T>{
     }
     private Node<T> front;
     private Node<T> last;
-    int Size;
+    private int Size;
     public LinkedListDeque() {
         front = new Node<T>(null, null, null);
         last = new Node<T>(null, front, front);
@@ -136,13 +136,14 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T>{
             if (Size != ((LinkedListDeque) obj).size()) {
                 return false;
             }
-        }
-        for (int i = 0; i < Size; i++) {
-            if (this.get(i) != ((LinkedListDeque) obj).get(i)) {
-                return false;
+            for (int i = 0; i < Size; i++) {
+                if (this.get(i) != ((LinkedListDeque) obj).get(i)) {
+                    return false;
+                }
             }
+            return true;
         }
-        return true;
+        return false;
     }
 }
 
