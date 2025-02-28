@@ -3,7 +3,6 @@ package deque;
 import java.util.Arrays;
 import java.util.Iterator;
 
-
 public class ArrayDeque<T> implements Deque<T>, Iterable<T>  {
     private T[] items;
     private int size;
@@ -23,7 +22,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T>  {
             resize(size * 2);
         }
         items[frontIndex] = item;
-        frontIndex -= 1;
+        frontIndex = Math.floorMod(frontIndex - 1, items.length);
         size += 1;
     }
 
@@ -33,13 +32,8 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T>  {
             resize(size * 2);
         }
         items[lastIndex] = item;
-        lastIndex += 1;
+        lastIndex = Math.floorMod(lastIndex + 1, items.length);
         size += 1;
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return size == 0;
     }
 
     @Override
@@ -60,17 +54,11 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T>  {
         if (isEmpty()) {
             return null;
         }
-        int index;
-        if (frontIndex == items.length - 1) {
-            index = 0;
-        } else {
-            index = frontIndex + 1;
-            frontIndex += 1;
-        }
-        T r = items[index];
-        items[index] = null;
+        frontIndex = Math.floorMod(frontIndex + 1, items.length);;
+        T r = items[frontIndex];
+        items[frontIndex] = null;
         size -= 1;
-        desize(size / 2);
+        desize(items.length / 2);
         return r;
     }
 
@@ -79,17 +67,11 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T>  {
         if (isEmpty()) {
             return null;
         }
-        int index;
-        if (lastIndex == 0) {
-            index = items.length - 1;
-        } else {
-            index = lastIndex - 1;
-            lastIndex -= 1;
-        }
-        T r = items[index];
-        items[index] = null;
+        lastIndex = Math.floorMod(lastIndex - 1, items.length);
+        T r = items[lastIndex];
+        items[lastIndex] = null;
         size -= 1;
-        desize(size / 2);
+        desize(items.length / 2);
         return r;
     }
 
@@ -123,12 +105,12 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T>  {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof ArrayDeque) {
+        if (obj instanceof Deque) {
             if (((ArrayDeque) obj).size() != size ) {
                 return false;
             }
             for (int i = 0; i < size; i++) {
-                if (this.get(i) != ((ArrayDeque) obj).get(i)) {
+                if (this.get(i) != ((Deque) obj).get(i)) {
                     return false;
                 }
             }
@@ -137,7 +119,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T>  {
         return false;
     }
 
-    public void resize(int cap) {
+    private void resize(int cap) {
        T[] a = (T[]) new Object[cap];
        for (int i = 0; i < size; i++) {
            a[i] = get(i);

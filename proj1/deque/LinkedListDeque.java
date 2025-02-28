@@ -1,12 +1,9 @@
 package deque;
-
-import org.apache.commons.collections.iterators.ArrayIterator;
-
 import java.util.Iterator;
 
 public class LinkedListDeque<T> implements Deque<T>, Iterable<T>{
 
-    public static class Node<T> {
+    private static class Node<T> {
         T item;
         Node<T> prev;
         Node<T> next;
@@ -43,10 +40,6 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T>{
         Size += 1;
     }
 
-    @Override
-    public boolean isEmpty() {
-        return Size == 0;
-    }
 
     @Override
     public int size() {
@@ -132,12 +125,12 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T>{
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof LinkedListDeque) {
+        if (obj instanceof Deque) {
             if (Size != ((LinkedListDeque) obj).size()) {
                 return false;
             }
             for (int i = 0; i < Size; i++) {
-                if (this.get(i) != ((LinkedListDeque) obj).get(i)) {
+                if (this.get(i) != ((Deque) obj).get(i)) {
                     return false;
                 }
             }
