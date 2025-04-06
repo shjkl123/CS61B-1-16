@@ -23,7 +23,7 @@ public class CapersRepository implements Serializable {
     /** Main metadata folder. */
     static final File CAPERS_FOLDER = join(CWD,".capers"); // TODO Hint: look at the `join`
                                             //      function in Utils
-    static final File STORY_FILE = join(CAPERS_FOLDER, "story");
+    static final File STORY_FILE = join(CAPERS_FOLDER, "story.txt");
     /**
      * Does required filesystem operations to allow for persistence.
      * (creates any necessary folders or files)
