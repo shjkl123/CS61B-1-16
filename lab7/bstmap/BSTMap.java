@@ -4,7 +4,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Set;
 
-public class BSTMap<K extends Comparable<K>, V> implements Map61B {
+public class BSTMap<K extends Comparable, V> implements Map61B<K, V> {
 
     private static class BSTNode<K, V> {
         public K key;
@@ -35,21 +35,21 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B {
     }
 
     @Override
-    public boolean containsKey(Object key) {
+    public boolean containsKey(K key) {
         BSTNode p = first;
         while (p != null) {
             if (p.key.equals(key)) return true;
-            if (((K)p.key).compareTo((K)key) > 0) p = p.left;
-            if (((K)p.key).compareTo((K)key) < 0) p = p.right;
+            if (((K)p.key).compareTo(key) > 0) p = p.left;
+            if (((K)p.key).compareTo(key) < 0) p = p.right;
         }
         return false;
     }
 
     @Override
-    public Object get(Object key) {
+    public V get(K key) {
         BSTNode p = first;
         while (p != null) {
-            if (p.key.equals(key)) return p.item;
+            if (p.key.equals(key)) return (V)p.item;
             if (((K)p.key).compareTo((K)key) > 0) p = p.left;
             else if (((K)p.key).compareTo((K)key) < 0) p = p.right;
         }
@@ -62,7 +62,7 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B {
     }
 
     @Override
-    public void put(Object key, Object value) {
+    public void put(K key, V value) {
         if (first == null) {
             first = new BSTNode((K)key, (V)value);
             size++;
@@ -101,12 +101,12 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B {
     }
 
     @Override
-    public Object remove(Object key) {
+    public V remove(K key) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Object remove(Object key, Object value) {
+    public V remove(K key, V value) {
         throw new UnsupportedOperationException();
     }
 
