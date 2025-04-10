@@ -117,7 +117,7 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
         return null;
     }
 
-    public void printInorder() {
+    public void printInOrder() {
         return;
     }
 }
