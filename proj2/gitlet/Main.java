@@ -14,11 +14,19 @@ public class Main {
         switch(firstArg) {
             case "init":
                 // TODO: handle the `init` command
+                Operation.init();
                 break;
             case "add":
                 // TODO: handle the `add [filename]` command
+                if (args.length != 2) {
+                    System.out.println("File does not exist.");
+                    System.exit(0);
+                }
+                String fileName = args[1];
+                Operation.add(fileName);
                 break;
             // TODO: FILL THE REST IN
+
         }
     }
 }
