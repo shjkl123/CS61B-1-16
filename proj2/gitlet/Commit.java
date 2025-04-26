@@ -6,9 +6,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.Locale;
+import java.util.*;
 
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
@@ -28,8 +26,10 @@ public class Commit implements Serializable {
     /** The message of this Commit. */
     private final String message;
     private final Commit parent;
-    private final Blob[] blobs;
-    private String timeStamp;
+    private final List<Blob> blobs = new LinkedList<>();
+    private final Map<String, String> pathToBlob = new HashMap<>();
+    //fileName to blobId
+    private final String timeStamp;
     private final String id;
     /* TODO: fill in the rest of this class. */
 
@@ -41,20 +41,18 @@ public class Commit implements Serializable {
         else currentTime = new Date();
         DateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
         timeStamp = dateFormat.format(currentTime);
-        this.blobs = blobs;
+        if (blobs != null) {
+            this.blobs.addAll(Arrays.asList(blobs));
+            for (Blob b : blobs) {
+                pathToBlob.put(b.getFile().getName(), b.toString());
+            }
+        }
         id = generateId();
     }
 
     private String generateId() {
-        if (parent == null && blobs == null) {
-            return Utils.sha1(message, timeStamp);
-        } else if (parent == null) {
-            return Utils.sha1(message, timeStamp, Arrays.toString(blobs));
-        } else if (blobs == null) {
-            return Utils.sha1(message, parent.toString(), timeStamp);
-        } else {
-            return Utils.sha1(message, parent.toString(), timeStamp, Arrays.toString(blobs));
-        }
+        if (parent != null) return Utils.sha1(message, parent.toString(), timeStamp, pathToBlob.toString());
+        return Utils.sha1(message, timeStamp, pathToBlob.toString());
     }
 
     @Override
@@ -62,10 +60,23 @@ public class Commit implements Serializable {
          return id;
     }
 
+
     public void saveCommit() {
         String id = generateId();
         File file = Utils.join(Repository.GITLET_COMMITS, id);
         Utils.writeObject(file, this);
     }
+
+    public boolean isFileInCommit(File file) {
+        String blobId = pathToBlob.get(file.getName());
+        Blob b = new Blob(file);
+        return b.toString().equals(blobId);
+    }
+
+    public void removeFile(File file) {
+        Blob b = new Blob(file);
+        blobs.remove(b);
+    }
+
 
 }

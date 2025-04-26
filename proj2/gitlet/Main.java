@@ -41,7 +41,16 @@ public class Main {
                     System.out.println("Please enter a commit message.");
                     System.exit(0);
                 }
-                Operation.commit(args);
+                String[] message = new String[args.length - 1];
+                System.arraycopy(args, 0, message, 0, message.length);
+                Operation.commit(message);
+                break;
+            case "rm" :
+                if (args.length != 2) {
+                    System.out.println("Incorrect operands.");
+                    System.exit(0);
+                }
+                Operation.rm(args[1]);
                 break;
             default:
                 System.out.println("No command with that name exists.");

@@ -16,6 +16,10 @@ public class Blob implements Serializable {
         id = generateId();
     }
 
+    public File getFile() {
+        return file;
+    }
+
     private String generateId() {
         return Utils.sha1(fileByte);
     }
@@ -32,5 +36,6 @@ public class Blob implements Serializable {
         File file = Utils.join(dir, id.substring(2));
         Utils.writeObject(file, this);
     }
+
 
 }

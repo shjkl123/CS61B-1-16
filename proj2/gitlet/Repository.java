@@ -3,6 +3,7 @@ package gitlet;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static gitlet.Utils.*;
@@ -92,14 +93,29 @@ public class Repository {
         return false;
     }
 
-    public static void addFileToAddStage(File file) {
+    private static void addFileToStage(File file, File stagePos) {
         Blob b = new Blob(file);
         String fileName = file.getName();
         String s = sha1(fileName);
-        File dir = join(GITLET_ADDSTAGE, s.substring(0, 2));
+        File dir = join(stagePos, s.substring(0, 2));
         if (!dir.exists()) dir.mkdir();
         File pos = join(dir, s.substring(2));
         writeObject(pos, b);
+    }
+
+    public static void addFileToAddStage(File file) {
+        addFileToStage(file, GITLET_ADDSTAGE);
+    }
+
+    public static void addFileToRemoveStage(File file) {
+        addFileToStage(file, GITLET_REMOVESTAGE);
+    }
+
+    public static void deleteFileInAddStage(File file) {
+        String sha1 = sha1(file.getName());
+        File dir = join(GITLET_ADDSTAGE, sha1.substring(0, 2));
+        File f = join(dir, sha1.substring(2));
+        f.delete();
     }
 
     private static void getAllFiles(File file, List<File> allFiles) {
@@ -121,17 +137,13 @@ public class Repository {
         }
     }
 
-    public static void commit(String message) {
-        File files = join(GITLET_ADDSTAGE);
+    private static Blob[] helpGetAllFileAndRemoveInStage(File blobPos) {
+        File files = join(blobPos);
         File[] fileList = files.listFiles();
         assert fileList != null;
-        if (fileList.length == 0) {
-            System.out.println("No changes added to the commit.");
-            System.exit(0);
-        }
         List<File> blobFiles = new ArrayList<>();
-        Blob[] blobs = new Blob[fileList.length];
-        getAllFiles(GITLET_ADDSTAGE, blobFiles);
+        getAllFiles(blobPos, blobFiles);
+        Blob[] blobs = new Blob[blobFiles.size()];
         int i = 0;
         for (File f : blobFiles) {
             Blob b = readObject(f, Blob.class);
@@ -139,7 +151,21 @@ public class Repository {
             blobs[i++] = b;
             f.delete();
         }
-        deleteDirFiles(GITLET_ADDSTAGE);
+        deleteDirFiles(blobPos);
+        return blobs;
+    }
+
+    public static void commit(String message) {
+        Blob[] b1 = helpGetAllFileAndRemoveInStage(GITLET_ADDSTAGE);
+        Blob[] b2 = helpGetAllFileAndRemoveInStage(GITLET_REMOVESTAGE);
+        //change list to arrays
+        Blob[] blobs = new Blob[b1.length + b2.length];
+        if (blobs.length == 0) {
+            System.out.println("No changes added to the commit.");
+            System.exit(0);
+        }
+        System.arraycopy(b1, 0, blobs, 0, b1.length);
+        System.arraycopy(b2,0, blobs, b1.length, b2.length);
         Commit cmt = new Commit(message, getMasterCommit(), blobs);
         cmt.saveCommit();
         setMaster(cmt);
@@ -148,15 +174,31 @@ public class Repository {
 
 
     public static boolean isFileInAddStage(File file) {
-        return true;
+        String s = sha1(file.getName());
+        File dir = join(GITLET_ADDSTAGE, s.substring(0, 2));
+        assert dir.isDirectory();
+        if (!dir.exists()) return false;
+        File[] files = dir.listFiles();
+        assert files != null;
+        for (File f : files) {
+            if (f.getName().equals(s.substring(2))) return true;
+        }
+        return false;
     }
 
     public static boolean isFileInCWD(File file) {
-        return true;
+        File f = join(Repository.CWD, file.getName());
+        return f.exists();
     }
 
     public static boolean isFileInCurrentCommit(File file) {
-        return true;
+        Commit cmt = getMasterCommit();
+        return cmt.isFileInCommit(file);
+    }
+
+    public static void deleteFileInCurrentCommit(File file) {
+        Commit cmt = getHeadCommit();
+        cmt.removeFile(file);
     }
 }
 

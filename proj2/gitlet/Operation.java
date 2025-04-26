@@ -40,6 +40,16 @@ public class Operation {
     }
 
     public static void rm(String fileName) {
-
+        File file = join(fileName);
+        if (Repository.isFileInAddStage(file)) {
+            Repository.deleteFileInAddStage(file);
+        } else if (Repository.isFileInCurrentCommit(file)) {
+            Repository.addFileToRemoveStage(file);
+            if (Repository.isFileInCWD(file)) file.delete();
+            else Repository.deleteFileInCurrentCommit(file);
+        } else {
+            System.out.println("No reason to remove the file.");
+            System.exit(0);
+        }
     }
 }
