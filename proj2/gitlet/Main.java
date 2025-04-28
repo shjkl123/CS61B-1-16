@@ -10,6 +10,14 @@ public class Main {
     /** Usage: java gitlet.Main ARGS, where ARGS contains
      *  <COMMAND> <OPERAND1> <OPERAND2> ... 
      */
+
+    public static void incorrectOperandsHint(String[] args, int minLength, int maxLength) {
+        if (args.length > maxLength || args.length < minLength) {
+            System.out.println("Incorrect operands.");
+            System.exit(0);
+        }
+    }
+
     public static void main(String[] args) {
         // TODO: what if args is empty?
         if (args.length == 0) {
@@ -21,36 +29,41 @@ public class Main {
         switch(firstArg) {
             case "init":
                 // TODO: handle the `init` command
-                if (args.length > 1) {
-                    System.out.println("Incorrect operands.");
-                    System.exit(0);
-                }
+                incorrectOperandsHint(args, 1,1);
                 Operation.init();
                 break;
             case "add":
                 // TODO: handle the `add [filename]` command
-                if (args.length != 2) {
-                    System.out.println("Incorrect operands.");
-                    System.exit(0);
-                }
+                incorrectOperandsHint(args, 2, 2);
                 Operation.add(args[1]);
                 break;
             // TODO: FILL THE REST IN
             case "commit" :
-                if (args.length < 2) {
+                if (args.length == 1) {
                     System.out.println("Please enter a commit message.");
                     System.exit(0);
                 }
-                String[] message = new String[args.length - 1];
-                System.arraycopy(args, 0, message, 0, message.length);
-                Operation.commit(message);
+                Operation.commit(args);
                 break;
             case "rm" :
-                if (args.length != 2) {
-                    System.out.println("Incorrect operands.");
-                    System.exit(0);
-                }
+                incorrectOperandsHint(args, 2, 2);
                 Operation.rm(args[1]);
+                break;
+            case "log" :
+                incorrectOperandsHint(args, 1, 1);
+                Operation.log();
+                break;
+            case "global-log" :
+                incorrectOperandsHint(args, 1, 1);
+                Operation.globalLog();
+                break;
+            case "find" :
+                incorrectOperandsHint(args, 2, Integer.MAX_VALUE);
+                Operation.find(args);
+                break;
+            case "status" :
+                incorrectOperandsHint(args, 1, 1);
+                Operation.status();
                 break;
             default:
                 System.out.println("No command with that name exists.");

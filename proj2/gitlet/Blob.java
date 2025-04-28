@@ -20,8 +20,12 @@ public class Blob implements Serializable {
         return file;
     }
 
+    public String getFileName() {
+        return file.getName();
+    }
+
     private String generateId() {
-        return Utils.sha1(fileByte);
+        return Utils.sha1(fileByte, file.getName());
     }
 
     @Override
@@ -36,6 +40,4 @@ public class Blob implements Serializable {
         File file = Utils.join(dir, id.substring(2));
         Utils.writeObject(file, this);
     }
-
-
 }

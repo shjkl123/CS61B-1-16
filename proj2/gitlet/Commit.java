@@ -25,7 +25,7 @@ public class Commit implements Serializable {
 
     /** The message of this Commit. */
     private final String message;
-    private final Commit parent;
+    private final List<Commit> parent = new ArrayList<>();
     private final List<Blob> blobs = new LinkedList<>();
     private final Map<String, String> pathToBlob = new HashMap<>();
     //fileName to blobId
@@ -33,9 +33,9 @@ public class Commit implements Serializable {
     private final String id;
     /* TODO: fill in the rest of this class. */
 
-    Commit(String message, Commit parent, Blob[] blobs) {
+    Commit(String message, Commit[] parent, Blob[] blobs) {
         this.message = message;
-        this.parent = parent;
+        if (parent != null) this.parent.addAll(List.of(parent));
         Date currentTime;
         if (parent == null) currentTime = new Date(0);
         else currentTime = new Date();
@@ -50,9 +50,9 @@ public class Commit implements Serializable {
         id = generateId();
     }
 
+
     private String generateId() {
-        if (parent != null) return Utils.sha1(message, parent.toString(), timeStamp, pathToBlob.toString());
-        return Utils.sha1(message, timeStamp, pathToBlob.toString());
+        return Utils.sha1(message, timeStamp, parent.toString(), pathToBlob.toString());
     }
 
     @Override
@@ -78,5 +78,23 @@ public class Commit implements Serializable {
         blobs.remove(b);
     }
 
+    public boolean isInitCommit() {
+        return parent.isEmpty();
+    }
 
+    public List<Commit> getParent() {
+        return parent;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public String getTimeStamp() {
+        return timeStamp;
+    }
+
+    public String getId() {
+        return id;
+    }
 }

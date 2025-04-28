@@ -2,9 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -25,9 +23,13 @@ public class Repository {
      * variable is used. We've provided two examples for you.
      */
 
-    /** The current working directory. */
+    /**
+     * The current working directory.
+     */
     public static final File CWD = new File(System.getProperty("user.dir"));
-    /** The .gitlet directory. */
+    /**
+     * The .gitlet directory.
+     */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
     public static final File GITLET_OBJECTS = join(GITLET_DIR, "objects");
     public static final File GITLET_COMMITS = join(GITLET_OBJECTS, "commits");
@@ -66,6 +68,11 @@ public class Repository {
         String sha1 = cmt.toString();
         File file = join(GITLET_MASTER, "master.txt");
         writeContents(file, sha1);
+    }
+
+    public static void addHeads(String branchName, Commit cmt) {
+        File file = join(GITLET_HEADS, branchName);
+        writeContents(file, cmt.getId());
     }
 
     private static Commit getHeadCommit() {
@@ -127,6 +134,7 @@ public class Repository {
             else allFiles.add(f);
         }
     }
+
     //it will remove all files in a dir
     private static void deleteDirFiles(File dir) {
         assert dir.isDirectory();
@@ -165,11 +173,14 @@ public class Repository {
             System.exit(0);
         }
         System.arraycopy(b1, 0, blobs, 0, b1.length);
-        System.arraycopy(b2,0, blobs, b1.length, b2.length);
-        Commit cmt = new Commit(message, getMasterCommit(), blobs);
+        System.arraycopy(b2, 0, blobs, b1.length, b2.length);
+        Commit[] master = new Commit[1];
+        master[0] = getMasterCommit();
+        Commit cmt = new Commit(message, master, blobs);
         cmt.saveCommit();
         setMaster(cmt);
-        //setHead(cmt);
+        setHead(cmt);
+        addHeads("master", cmt);
     }
 
 
@@ -199,6 +210,114 @@ public class Repository {
     public static void deleteFileInCurrentCommit(File file) {
         Commit cmt = getHeadCommit();
         cmt.removeFile(file);
+    }
+
+    public static void rm(String fileName) {
+        File file = join(fileName);
+        if (isFileInAddStage(file)) {
+            deleteFileInAddStage(file);
+        } else if (isFileInCurrentCommit(file)) {
+            addFileToRemoveStage(file);
+            if (isFileInCWD(file)) file.delete();
+            else deleteFileInCurrentCommit(file);
+        } else {
+            System.out.println("No reason to remove the file.");
+            System.exit(0);
+        }
+    }
+
+    private static void helpLog(Commit p, boolean isMergePrint, boolean isNewLine) {
+        String id = p.getId();
+        String timeStamp = p.getTimeStamp();
+        String message = p.getMessage();
+        System.out.println("===");
+        System.out.println("commit " + id);
+        if (isMergePrint) {
+            System.out.println("Merge: " + p.getParent().get(0).getId().substring(0, 7) +
+                    " " + p.getParent().get(1).getId().substring(0, 7));
+        }
+        System.out.println("Date: " + timeStamp);
+        System.out.println(message);
+        if (isNewLine) System.out.println();
+    }
+
+    public static void log() {
+        Commit p = getMasterCommit();
+        boolean isMergeCommit = false;
+        while (true) {
+            helpLog(p, isMergeCommit, !p.isInitCommit());
+            List<Commit> parent = p.getParent();
+            isMergeCommit = parent.size() >= 2;
+            if (!p.isInitCommit()) p = p.getParent().get(0);
+            else break;
+        }
+    }
+
+    public static void globalLog() {
+        File[] files = GITLET_COMMITS.listFiles();
+        assert files != null;
+        for (int i = 0; i < files.length; i++) {
+            Commit cmt = readObject(files[i], Commit.class);
+            helpLog(cmt, false, i != files.length - 1);
+        }
+    }
+
+    public static void find(String message) {
+        File[] files = GITLET_COMMITS.listFiles();
+        assert files != null;
+        boolean isExist = false;
+        for (File f : files) {
+            Commit cmt = readObject(f, Commit.class);
+            String commitMessage = cmt.getMessage();
+            if (commitMessage.equals(message)) {
+                System.out.println(cmt.getId());
+                isExist = true;
+            }
+        }
+        if (!isExist) {
+            System.out.println("Found no commit with that message.");
+        }
+    }
+
+    private static void helpStatusStagePrint(File pos) {
+        List<File> addStageFiles = new ArrayList<>();
+        List<String> addStageFileNames = new ArrayList<>();
+        getAllFiles(pos, addStageFiles);
+        for (File f : addStageFiles) {
+            addStageFileNames.add(readObject(f, Blob.class).getFileName());
+        }
+        Collections.sort(addStageFileNames);
+        for (String s : addStageFileNames)
+            System.out.println(s);
+    }
+
+
+    public static void status() {
+        File[] branchFiles = GITLET_HEADS.listFiles();
+        assert branchFiles != null;
+        List<String> branchNames = new ArrayList<>();
+        Commit headCommit = getHeadCommit();
+        System.out.println("=== Branches ===");
+        for (File f : branchFiles) {
+            String fileCommitId = readContentsAsString(f);
+            if (fileCommitId.equals(headCommit.getId())) {
+                System.out.println("*" + f.getName());
+            } else {
+                branchNames.add(f.getName());
+            }
+        }
+        Collections.sort(branchNames);
+        for (String b : branchNames)
+            System.out.println(b);
+        System.out.println();
+        System.out.println("=== Staged Files ===");
+        helpStatusStagePrint(GITLET_ADDSTAGE);
+        System.out.println();
+        System.out.println("===Removed Files===");
+        helpStatusStagePrint(GITLET_REMOVESTAGE);
+        System.out.println();
+        System.out.println("=== Modifications Not Staged For Commit ===\n");
+        System.out.println("=== Untracked Files ===\n");
     }
 }
 

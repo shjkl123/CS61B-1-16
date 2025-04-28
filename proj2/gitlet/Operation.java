@@ -18,6 +18,7 @@ public class Operation {
         initialCommit.saveCommit();
         Repository.setMaster(initialCommit);
         Repository.setHead(initialCommit);
+        Repository.addHeads("master", initialCommit);
     }
 
     public static void add(String fileName) {
@@ -26,30 +27,38 @@ public class Operation {
             System.out.println("File does not exist.");
             System.exit(0);
         }
-        if (Repository.isStoredFile(file)) return;
         Repository.addFileToAddStage(file);
     }
 
-    public static void commit(String[] args) {
+    private static String getCommitMessageFromArgs(String[] args) {
         StringBuilder message = new StringBuilder();
         for (int i = 1; i < args.length; i++) {
             message.append(args[i]);
         }
+        return String.valueOf(message);
+    }
 
-        Repository.commit(String.valueOf(message));
+    public static void commit(String[] args) {
+        Repository.commit(getCommitMessageFromArgs(args));
     }
 
     public static void rm(String fileName) {
-        File file = join(fileName);
-        if (Repository.isFileInAddStage(file)) {
-            Repository.deleteFileInAddStage(file);
-        } else if (Repository.isFileInCurrentCommit(file)) {
-            Repository.addFileToRemoveStage(file);
-            if (Repository.isFileInCWD(file)) file.delete();
-            else Repository.deleteFileInCurrentCommit(file);
-        } else {
-            System.out.println("No reason to remove the file.");
-            System.exit(0);
-        }
+        Repository.rm(fileName);
+    }
+
+    public static void log() {
+        Repository.log();
+    }
+
+    public static void globalLog() {
+        Repository.globalLog();
+    }
+
+    public static void find(String[] args) {
+        Repository.find(getCommitMessageFromArgs(args));
+    }
+
+    public static void status() {
+        Repository.status();
     }
 }
