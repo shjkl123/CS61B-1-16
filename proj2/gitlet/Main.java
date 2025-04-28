@@ -65,6 +65,10 @@ public class Main {
                 incorrectOperandsHint(args, 1, 1);
                 Operation.status();
                 break;
+            case "checkout" :
+                incorrectOperandsHint(args, 2, 4);
+                Operation.checkout(args);
+                break;
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);

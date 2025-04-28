@@ -61,4 +61,18 @@ public class Operation {
     public static void status() {
         Repository.status();
     }
+
+    public static void checkout(String[] args) {
+        if (args.length == 4) {
+            String commitId = args[1];
+            String fileName = args[3];
+            Repository.checkoutCommitFile(commitId, fileName);
+        } else if (args.length == 3) {
+            String fileName = args[2];
+            Repository.checkoutFileName(fileName);
+        } else if (args.length == 2) {
+            String branchName = args[1];
+            Repository.checkoutBranch(branchName);
+        }
+    }
 }

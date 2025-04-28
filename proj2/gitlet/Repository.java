@@ -1,7 +1,6 @@
 package gitlet;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.*;
 
 import static gitlet.Utils.*;
@@ -87,26 +86,10 @@ public class Repository {
         return readObject(pos, Commit.class);
     }
 
-    public static boolean isStoredFile(File file) {
-        Blob b = new Blob(file);
-        File pos = join(GITLET_BLOBS, b.toString().substring(0, 2));
-        if (!pos.exists()) return false;
-        File[] files = pos.listFiles();
-        assert files != null;
-        for (File f : files) {
-            if (b.toString().substring(2).equals(f.getName()))
-                return true;
-        }
-        return false;
-    }
-
     private static void addFileToStage(File file, File stagePos) {
         Blob b = new Blob(file);
         String fileName = file.getName();
-        String s = sha1(fileName);
-        File dir = join(stagePos, s.substring(0, 2));
-        if (!dir.exists()) dir.mkdir();
-        File pos = join(dir, s.substring(2));
+        File pos = join(stagePos, fileName);
         writeObject(pos, b);
     }
 
@@ -119,10 +102,7 @@ public class Repository {
     }
 
     public static void deleteFileInAddStage(File file) {
-        String sha1 = sha1(file.getName());
-        File dir = join(GITLET_ADDSTAGE, sha1.substring(0, 2));
-        File f = join(dir, sha1.substring(2));
-        f.delete();
+        join(GITLET_ADDSTAGE, file.getName()).delete();
     }
 
     private static void getAllFiles(File file, List<File> allFiles) {
@@ -185,21 +165,12 @@ public class Repository {
 
 
     public static boolean isFileInAddStage(File file) {
-        String s = sha1(file.getName());
-        File dir = join(GITLET_ADDSTAGE, s.substring(0, 2));
-        assert dir.isDirectory();
-        if (!dir.exists()) return false;
-        File[] files = dir.listFiles();
-        assert files != null;
-        for (File f : files) {
-            if (f.getName().equals(s.substring(2))) return true;
-        }
-        return false;
+        File pos = join(GITLET_ADDSTAGE, file.getName());
+        return pos.exists();
     }
 
     public static boolean isFileInCWD(File file) {
-        File f = join(Repository.CWD, file.getName());
-        return f.exists();
+        return join(Repository.CWD, file.getName()).exists();
     }
 
     public static boolean isFileInCurrentCommit(File file) {
@@ -318,6 +289,59 @@ public class Repository {
         System.out.println();
         System.out.println("=== Modifications Not Staged For Commit ===\n");
         System.out.println("=== Untracked Files ===\n");
+    }
+
+    private static void helpCheckOut(Commit cmt, String fileName) {
+        if (!cmt.isFileInCommit(fileName)) {
+            System.out.println("File does not exist in that commit");
+            System.exit(0);
+        }
+        String fileContent = cmt.getFileBlob(fileName).getFileContent();
+        File f = join(Repository.CWD, fileName);
+        writeContents(f, fileContent);
+    }
+
+    private static String getCurrentBranchName() {
+        File[] files = GITLET_HEADS.listFiles();
+        assert files != null;
+        String currentCommitId = getHeadCommit().getId();
+        for (File f : files) {
+            if (readContentsAsString(f).equals(currentCommitId))
+                return f.getName();
+        }
+        return null;
+    }
+
+    public static void checkoutFileName(String fileName) {
+        helpCheckOut(getHeadCommit(), fileName);
+    }
+
+    public static void checkoutCommitFile(String commitId, String fileName) {
+        File pos = join(GITLET_COMMITS, commitId);
+        if (!pos.exists()) {
+            System.out.println("No commit with that id exists");
+            System.exit(0);
+        }
+        Commit cmt = readObject(pos, Commit.class);
+        helpCheckOut(cmt, fileName);
+    }
+
+    public static Commit getCommit(String branchName) {
+        File file = join(GITLET_HEADS, branchName);
+        String pos = readContentsAsString(file);
+        return readObject(join(GITLET_COMMITS, pos), Commit.class);
+    }
+
+    public static void checkoutBranch(String branchName) {
+        String currentBranchName = getCurrentBranchName();
+        if (branchName.equals(currentBranchName)) {
+            System.out.println("No need to checkout the current branch.");
+            System.exit(0);
+        }
+        Commit currentBranchCommit = getCommit(currentBranchName);
+        Commit NowBranchCommit = getCommit(branchName);
+        List<File> files = NowBranchCommit.getAllFiles();
+        //wait
     }
 }
 

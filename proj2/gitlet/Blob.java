@@ -3,17 +3,20 @@ package gitlet;
 import java.io.File;
 import java.io.Serializable;
 
-
+//wait
 public class Blob implements Serializable {
 
     private File file;
     private byte[] fileByte;
-    private String id;
-
+    private final String id;
+    private final String fileName;
+    private final String fileContent;
     Blob(File file) {
         this.file = file;
         fileByte = Utils.readContents(file);
         id = generateId();
+        fileName = file.getName();
+        fileContent = Utils.readContentsAsString(file);
     }
 
     public File getFile() {
@@ -22,6 +25,10 @@ public class Blob implements Serializable {
 
     public String getFileName() {
         return file.getName();
+    }
+
+    public String getFileContent() {
+        return fileContent;
     }
 
     private String generateId() {

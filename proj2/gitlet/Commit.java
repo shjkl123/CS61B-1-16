@@ -67,6 +67,10 @@ public class Commit implements Serializable {
         Utils.writeObject(file, this);
     }
 
+    public boolean isFileInCommit(String fileName) {
+        return getFile(fileName) != null;
+    }
+
     public boolean isFileInCommit(File file) {
         String blobId = pathToBlob.get(file.getName());
         Blob b = new Blob(file);
@@ -97,4 +101,31 @@ public class Commit implements Serializable {
     public String getId() {
         return id;
     }
+
+    public File getFile(String fileName) {
+        return getFileBlob(fileName).getFile();
+    }
+
+    public Blob getFileBlob(String fileName) {
+        String blobId = pathToBlob.get(fileName);
+        if (blobId == null) return null;
+        File dir = Utils.join(Repository.GITLET_BLOBS, blobId.substring(0, 2));
+        File file = Utils.join(dir, blobId.substring(2));
+        if (!file.exists()) return null;
+        return Utils.readObject(file, Blob.class);
+    }
+
+    public List<File> getAllFiles() {
+        List<File> allFile = new ArrayList<>();
+        for (Blob b : blobs) {
+            allFile.add(b.getFile());
+        }
+        return allFile;
+    }
+
+    public boolean isFileStoredInThisCommit(String fileName) {
+        return getFileBlob(fileName) != null;
+    }
+
+
 }
