@@ -1,7 +1,13 @@
 package gitlet;
 
+import javax.swing.text.FieldView;
+import javax.swing.text.html.StyleSheet;
 import java.io.File;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static gitlet.Utils.*;
 
@@ -34,314 +40,289 @@ public class Repository {
     public static final File GITLET_COMMITS = join(GITLET_OBJECTS, "commits");
     public static final File GITLET_BLOBS = join(GITLET_OBJECTS, "blobs");
     public static final File GITLET_REFS = join(GITLET_DIR, "refs");
-    public static final File GITLET_MASTER = join(GITLET_REFS, "master");
-    public static final File GITLET_HEADS = join(GITLET_REFS, "heads");
     public static final File GITLET_HEAD = join(GITLET_DIR, "Head");
+    public static final File GITLET_HEADS = join(GITLET_REFS, "heads");
+    public static final File GITLET_MASTER = join(GITLET_HEADS, "master");
     public static final File GITLET_ADDSTAGE = join(GITLET_DIR, "addStage");
     public static final File GITLET_REMOVESTAGE = join(GITLET_DIR, "removeStage");
+
     /* TODO: fill in the rest of this class. */
-
-    public static void createGitletFile() {
-        if (!GITLET_DIR.exists()) GITLET_DIR.mkdir();
-    }
-
+    //all dir
     public static void setupPersistence() {
+        if (!GITLET_DIR.exists()) GITLET_DIR.mkdir();
         if (!GITLET_OBJECTS.exists()) GITLET_OBJECTS.mkdir();
         if (!GITLET_COMMITS.exists()) GITLET_COMMITS.mkdir();
         if (!GITLET_BLOBS.exists()) GITLET_BLOBS.mkdir();
         if (!GITLET_REFS.exists()) GITLET_REFS.mkdir();
-        if (!GITLET_MASTER.exists()) GITLET_MASTER.mkdir();
         if (!GITLET_HEADS.exists()) GITLET_HEADS.mkdir();
         if (!GITLET_HEAD.exists()) GITLET_HEAD.mkdir();
         if (!GITLET_ADDSTAGE.exists()) GITLET_ADDSTAGE.mkdir();
         if (!GITLET_REMOVESTAGE.exists()) GITLET_REMOVESTAGE.mkdir();
     }
 
+    //head commit also current working commit
+    public static Commit getHeadCommit() {
+        String commitPath = readContentsAsString(join(GITLET_HEAD, "head"));
+        File pos = join(GITLET_COMMITS, commitPath);
+        return readObject(pos, Commit.class);
+    }
+
+    public static void getAllFileInDir(File dir, List<File> s) {
+        assert dir.isDirectory();
+        File[] files = dir.listFiles();
+        for (File f : files) {
+            if (f.isDirectory()) getAllFileInDir(f, s);
+            else s.add(f);
+        }
+    }
+
+    public static void deleteAllFileInDir(File dir) {
+        assert dir.isDirectory();
+        File[] files = dir.listFiles();
+        for (File f : files) {
+            if (f.isDirectory()) deleteAllFileInDir(f);
+            else f.delete();
+        }
+    }
+
+    //help next two function
+    private static boolean isFileInStage(String fileNameSha1, File pos) {
+        assert pos.isDirectory();
+        File[] files = pos.listFiles();
+        assert files != null;
+        for (File f : files) {
+            if (f.getName().equals(fileNameSha1)) return true;
+        }
+        return false;
+    }
+
+    public static boolean isFileInAddStage(String fileNameSha1) {
+        return isFileInStage(fileNameSha1, GITLET_ADDSTAGE);
+    }
+
+    public static boolean isFileInRemoveStage(String fileNameSha1) {
+        return isFileInStage(fileNameSha1, GITLET_REMOVESTAGE);
+    }
+
+    //return true if addStage is empty
+    public static boolean isEmptyInAddStage() {
+        return GITLET_ADDSTAGE.listFiles().length == 0;
+    }
+
+    //return true if removeStage is empty
+    public static boolean isEmptyInRemoveStage() {
+        return GITLET_REMOVESTAGE.listFiles().length == 0;
+    }
+
+    //remove all stageFile and add them to commitMap
+    public static void saveAllAddStageFile(Map<String, String> commitPathToBlobId) {
+        File[] files = GITLET_ADDSTAGE.listFiles();
+        for (File f : files) {
+            Blob b = readObject(f, Blob.class);
+            commitPathToBlobId.put(f.getName(), b.getId());
+            b.saveBlob();
+            f.delete();
+        }
+    }
+
+    public static void deleteAllRemoveStageFile() {
+        deleteAllFileInDir(GITLET_REMOVESTAGE);
+    }
+
     public static void setHead(Commit cmt) {
-        String sha1 = cmt.toString();
-        File file = join(GITLET_HEAD, "Head.txt");
-        writeContents(file, sha1);
+        File file = join(GITLET_HEAD, "head");
+        writeContents(file, cmt.toString());
+    }
+
+    public static void setBranch(Commit cmt, String branchName) {
+        File file = join(GITLET_HEADS, branchName);
+        writeContents(file, cmt.toString());
     }
 
     public static void setMaster(Commit cmt) {
-        String sha1 = cmt.toString();
-        File file = join(GITLET_MASTER, "master.txt");
-        writeContents(file, sha1);
-    }
-
-    public static void addHeads(String branchName, Commit cmt) {
-        File file = join(GITLET_HEADS, branchName);
-        writeContents(file, cmt.getId());
-    }
-
-    private static Commit getHeadCommit() {
-        File file = join(GITLET_HEAD, "Head.txt");
-        File pos = join(GITLET_COMMITS, readContentsAsString(file));
-        return readObject(pos, Commit.class);
-    }
-
-    private static Commit getMasterCommit() {
-        File file = join(GITLET_MASTER, "master.txt");
-        File pos = join(GITLET_COMMITS, readContentsAsString(file));
-        return readObject(pos, Commit.class);
-    }
-
-    private static void addFileToStage(File file, File stagePos) {
-        Blob b = new Blob(file);
-        String fileName = file.getName();
-        File pos = join(stagePos, fileName);
-        writeObject(pos, b);
+        File file = join(GITLET_HEADS, "master");
+        writeContents(file, cmt.toString());
     }
 
     public static void addFileToAddStage(File file) {
-        addFileToStage(file, GITLET_ADDSTAGE);
+        Blob b = new Blob(file);
+        File pos = join(GITLET_ADDSTAGE, sha1(file.getName()));
+        writeObject(pos, b);
     }
 
-    public static void addFileToRemoveStage(File file) {
-        addFileToStage(file, GITLET_REMOVESTAGE);
+    private static Blob getBlob(String blobId) {
+        File dir = join(GITLET_BLOBS, blobId.substring(0, 2));
+        return readObject(join(dir, blobId.substring(2)), Blob.class);
     }
 
-    public static void deleteFileInAddStage(File file) {
-        join(GITLET_ADDSTAGE, file.getName()).delete();
+    public static void addCommitFileToRemoveStage(String fileName, Map<String, String> pathToBlobId) {
+        String blobId = pathToBlobId.get(sha1(fileName));
+        Blob b = getBlob(blobId);
+        File file = join(GITLET_REMOVESTAGE, sha1(fileName));
+        writeObject(file, b);
     }
 
-    private static void getAllFiles(File file, List<File> allFiles) {
-        assert file.isDirectory();
-        File[] files = file.listFiles();
-        assert files != null;
-        for (File f : files) {
-            if (f.isDirectory()) getAllFiles(f, allFiles);
-            else allFiles.add(f);
+    public static void init() {
+        if (GITLET_DIR.exists()) {
+            System.out.println("A Gitlet version-control system " +
+                    "already exists in the current directory.");
+            System.exit(0);
         }
+        Repository.setupPersistence();
+        Commit initialCommit = new Commit();
+        initialCommit.saveCommit();
+        setHead(initialCommit);
     }
 
-    //it will remove all files in a dir
-    private static void deleteDirFiles(File dir) {
-        assert dir.isDirectory();
-        File[] files = dir.listFiles();
-        assert files != null;
-        for (File f : files) {
-            f.delete();
+    public static void add(String fileName) {
+        File file = join(CWD, fileName);
+        if (!file.exists()) {
+            System.out.println("File does not exist.");
+            System.exit(0);
         }
-    }
-
-    private static Blob[] helpGetAllFileAndRemoveInStage(File blobPos) {
-        File files = join(blobPos);
-        File[] fileList = files.listFiles();
-        assert fileList != null;
-        List<File> blobFiles = new ArrayList<>();
-        getAllFiles(blobPos, blobFiles);
-        Blob[] blobs = new Blob[blobFiles.size()];
-        int i = 0;
-        for (File f : blobFiles) {
-            Blob b = readObject(f, Blob.class);
-            b.saveBlob();
-            blobs[i++] = b;
-            f.delete();
+        Commit currentCommit = getHeadCommit();
+        if (currentCommit.isStoredFile(file)) {
+            if (isFileInAddStage(sha1(fileName)))
+                join(GITLET_ADDSTAGE, sha1(fileName)).delete();
+        } else {
+            addFileToAddStage(file);
         }
-        deleteDirFiles(blobPos);
-        return blobs;
     }
 
     public static void commit(String message) {
-        Blob[] b1 = helpGetAllFileAndRemoveInStage(GITLET_ADDSTAGE);
-        Blob[] b2 = helpGetAllFileAndRemoveInStage(GITLET_REMOVESTAGE);
-        //change list to arrays
-        Blob[] blobs = new Blob[b1.length + b2.length];
-        if (blobs.length == 0) {
+        if (Repository.isEmptyInAddStage() && Repository.isEmptyInRemoveStage()) {
             System.out.println("No changes added to the commit.");
             System.exit(0);
         }
-        System.arraycopy(b1, 0, blobs, 0, b1.length);
-        System.arraycopy(b2, 0, blobs, b1.length, b2.length);
-        Commit[] master = new Commit[1];
-        master[0] = getMasterCommit();
-        Commit cmt = new Commit(message, master, blobs);
+        if (message.isEmpty()) {
+            System.out.println("Please enter a commit message");
+            System.exit(0);
+        }
+        Commit cmt = new Commit(message);
         cmt.saveCommit();
-        setMaster(cmt);
+        deleteAllRemoveStageFile();
+        saveAllAddStageFile(cmt.getPathToBlobID());
         setHead(cmt);
-        addHeads("master", cmt);
-    }
-
-
-    public static boolean isFileInAddStage(File file) {
-        File pos = join(GITLET_ADDSTAGE, file.getName());
-        return pos.exists();
-    }
-
-    public static boolean isFileInCWD(File file) {
-        return join(Repository.CWD, file.getName()).exists();
-    }
-
-    public static boolean isFileInCurrentCommit(File file) {
-        Commit cmt = getMasterCommit();
-        return cmt.isFileInCommit(file);
-    }
-
-    public static void deleteFileInCurrentCommit(File file) {
-        Commit cmt = getHeadCommit();
-        cmt.removeFile(file);
     }
 
     public static void rm(String fileName) {
-        File file = join(fileName);
-        if (isFileInAddStage(file)) {
-            deleteFileInAddStage(file);
-        } else if (isFileInCurrentCommit(file)) {
-            addFileToRemoveStage(file);
-            if (isFileInCWD(file)) file.delete();
-            else deleteFileInCurrentCommit(file);
+        Commit currentCommit = getHeadCommit();
+        File file = join(CWD, fileName);
+        if (isFileInAddStage(sha1(fileName))) {
+            join(GITLET_ADDSTAGE, sha1(fileName)).delete();
+        } else if (currentCommit.isStoredFile(fileName)) {
+            addCommitFileToRemoveStage(fileName, currentCommit.getPathToBlobID());
+            if (file.exists()) file.delete();
         } else {
             System.out.println("No reason to remove the file.");
             System.exit(0);
         }
     }
 
-    private static void helpLog(Commit p, boolean isMergePrint, boolean isNewLine) {
-        String id = p.getId();
-        String timeStamp = p.getTimeStamp();
-        String message = p.getMessage();
+    private static void helpLog(Commit cmt, boolean isMerged) {
         System.out.println("===");
-        System.out.println("commit " + id);
-        if (isMergePrint) {
-            System.out.println("Merge: " + p.getParent().get(0).getId().substring(0, 7) +
-                    " " + p.getParent().get(1).getId().substring(0, 7));
+        System.out.println("commit " + cmt.toString());
+        if (isMerged) {
+            System.out.print("Merge: ");
+            System.out.print(cmt.getParent(0).toString().substring(0, 7));
+            System.out.print(" ");
+            System.out.println(cmt.getParent(1).toString().substring(0, 7));
         }
-        System.out.println("Date: " + timeStamp);
-        System.out.println(message);
-        if (isNewLine) System.out.println();
+        System.out.println("Date: " + cmt.getTimeStamp());
+        System.out.println(cmt.getMessage());
+        //wait is need to create a new line for the initial commit
+        System.out.println();
     }
 
     public static void log() {
-        Commit p = getMasterCommit();
-        boolean isMergeCommit = false;
+        Commit cmt = getHeadCommit();
         while (true) {
-            helpLog(p, isMergeCommit, !p.isInitCommit());
-            List<Commit> parent = p.getParent();
-            isMergeCommit = parent.size() >= 2;
-            if (!p.isInitCommit()) p = p.getParent().get(0);
-            else break;
+            List<Commit> parents = cmt.getParents();
+            boolean flag = parents.size() == 2;
+            helpLog(cmt, flag);
+            if (parents.isEmpty()) break;
+            cmt = parents.get(0);
         }
     }
 
     public static void globalLog() {
         File[] files = GITLET_COMMITS.listFiles();
-        assert files != null;
-        for (int i = 0; i < files.length; i++) {
-            Commit cmt = readObject(files[i], Commit.class);
-            helpLog(cmt, false, i != files.length - 1);
+        for (File f : files) {
+            Commit cmt = readObject(f, Commit.class);
+            helpLog(cmt, false);
         }
     }
 
     public static void find(String message) {
         File[] files = GITLET_COMMITS.listFiles();
-        assert files != null;
-        boolean isExist = false;
+        boolean flag = true;
         for (File f : files) {
             Commit cmt = readObject(f, Commit.class);
-            String commitMessage = cmt.getMessage();
-            if (commitMessage.equals(message)) {
-                System.out.println(cmt.getId());
-                isExist = true;
+            if (cmt.getMessage().equals(message)) {
+                System.out.println(cmt.toString());
+                flag = false;
             }
         }
-        if (!isExist) {
+        if (flag) {
             System.out.println("Found no commit with that message.");
+            System.exit(0);
         }
     }
 
-    private static void helpStatusStagePrint(File pos) {
-        List<File> addStageFiles = new ArrayList<>();
-        List<String> addStageFileNames = new ArrayList<>();
-        getAllFiles(pos, addStageFiles);
-        for (File f : addStageFiles) {
-            addStageFileNames.add(readObject(f, Blob.class).getFileName());
-        }
-        Collections.sort(addStageFileNames);
-        for (String s : addStageFileNames)
-            System.out.println(s);
-    }
-
-
-    public static void status() {
-        File[] branchFiles = GITLET_HEADS.listFiles();
-        assert branchFiles != null;
+    private static void helpStatusBranches() {
+        File[] files = GITLET_HEADS.listFiles();
         List<String> branchNames = new ArrayList<>();
-        Commit headCommit = getHeadCommit();
-        System.out.println("=== Branches ===");
-        for (File f : branchFiles) {
-            String fileCommitId = readContentsAsString(f);
-            if (fileCommitId.equals(headCommit.getId())) {
+        Commit currentCommit = getHeadCommit();
+        String commitId = currentCommit.toString();
+        for (File f : files) {
+            String fileContent = readContentsAsString(f);
+            if (fileContent.equals(commitId))
                 System.out.println("*" + f.getName());
-            } else {
+            else
                 branchNames.add(f.getName());
-            }
         }
         Collections.sort(branchNames);
-        for (String b : branchNames)
-            System.out.println(b);
+        for (String branchName : branchNames)
+            System.out.println(branchName);
+    }
+
+    private static void helpStatusStageFiles(File pos) {
+        File[] files = pos.listFiles();
+        List<String> fileNames = new ArrayList<>();
+        for (File f : files) {
+            Blob b = readObject(f, Blob.class);
+            fileNames.add(b.getFileName());
+        }
+        Collections.sort(fileNames);
+        for (String fileName : fileNames)
+            System.out.println(fileName);
+    }
+
+    //wait to test when the branch done
+    public static void status() {
+        System.out.println("=== Branches ===");
+        helpStatusBranches();
         System.out.println();
         System.out.println("=== Staged Files ===");
-        helpStatusStagePrint(GITLET_ADDSTAGE);
+        helpStatusStageFiles(GITLET_ADDSTAGE);
         System.out.println();
-        System.out.println("===Removed Files===");
-        helpStatusStagePrint(GITLET_REMOVESTAGE);
+        System.out.println("=== Removed Files ===");
+        helpStatusStageFiles(GITLET_REMOVESTAGE);
         System.out.println();
-        System.out.println("=== Modifications Not Staged For Commit ===\n");
-        System.out.println("=== Untracked Files ===\n");
+        System.out.println("=== Modifications Not Staged For Commit ===");
+        System.out.println();
+        System.out.println("=== Utracked Files ===");
     }
 
-    private static void helpCheckOut(Commit cmt, String fileName) {
-        if (!cmt.isFileInCommit(fileName)) {
-            System.out.println("File does not exist in that commit");
-            System.exit(0);
-        }
-        String fileContent = cmt.getFileBlob(fileName).getFileContent();
-        File f = join(Repository.CWD, fileName);
-        writeContents(f, fileContent);
+    public static void checkOutUseFileName(String fileName) {
+
     }
 
-    private static String getCurrentBranchName() {
-        File[] files = GITLET_HEADS.listFiles();
-        assert files != null;
-        String currentCommitId = getHeadCommit().getId();
-        for (File f : files) {
-            if (readContentsAsString(f).equals(currentCommitId))
-                return f.getName();
-        }
-        return null;
+    public static void checkOutUseCommitIdAndFileName(String CommitId, String fileName) {
+
     }
 
-    public static void checkoutFileName(String fileName) {
-        helpCheckOut(getHeadCommit(), fileName);
-    }
+    public static void checkOutUseBranchName(String branchName) {
 
-    public static void checkoutCommitFile(String commitId, String fileName) {
-        File pos = join(GITLET_COMMITS, commitId);
-        if (!pos.exists()) {
-            System.out.println("No commit with that id exists");
-            System.exit(0);
-        }
-        Commit cmt = readObject(pos, Commit.class);
-        helpCheckOut(cmt, fileName);
-    }
-
-    public static Commit getCommit(String branchName) {
-        File file = join(GITLET_HEADS, branchName);
-        String pos = readContentsAsString(file);
-        return readObject(join(GITLET_COMMITS, pos), Commit.class);
-    }
-
-    public static void checkoutBranch(String branchName) {
-        String currentBranchName = getCurrentBranchName();
-        if (branchName.equals(currentBranchName)) {
-            System.out.println("No need to checkout the current branch.");
-            System.exit(0);
-        }
-        Commit currentBranchCommit = getCommit(currentBranchName);
-        Commit NowBranchCommit = getCommit(branchName);
-        List<File> files = NowBranchCommit.getAllFiles();
-        //wait
     }
 }
-

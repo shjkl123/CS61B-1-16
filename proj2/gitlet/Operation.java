@@ -1,48 +1,31 @@
 package gitlet;
 
-import java.io.File;
-
-import static gitlet.Utils.*;
+import java.util.Objects;
 
 public class Operation {
-
     public static void init() {
-        if (Repository.GITLET_DIR.exists()) {
-            System.out.println("A Gitlet version-control system already " +
-                    "exists in the current directory.");
-            System.exit(0);
-        }
-        Repository.createGitletFile();
-        Repository.setupPersistence();
-        Commit initialCommit = new Commit("initial commit", null, null);
-        initialCommit.saveCommit();
-        Repository.setMaster(initialCommit);
-        Repository.setHead(initialCommit);
-        Repository.addHeads("master", initialCommit);
+        Repository.init();
     }
 
-    public static void add(String fileName) {
-        File file = join(Repository.CWD, fileName);
-        if (!file.exists()) {
-            System.out.println("File does not exist.");
-            System.exit(0);
-        }
-        Repository.addFileToAddStage(file);
+    public static void add(String[] args) {
+        String fileName = args[1];
+        Repository.add(fileName);
     }
 
-    private static String getCommitMessageFromArgs(String[] args) {
+    private static String getMessage(String[] args) {
         StringBuilder message = new StringBuilder();
         for (int i = 1; i < args.length; i++) {
             message.append(args[i]);
         }
-        return String.valueOf(message);
+        return message.toString();
     }
 
     public static void commit(String[] args) {
-        Repository.commit(getCommitMessageFromArgs(args));
+        Repository.commit(getMessage(args));
     }
 
-    public static void rm(String fileName) {
+    public static void rm(String[] args) {
+        String fileName = args[1];
         Repository.rm(fileName);
     }
 
@@ -55,24 +38,31 @@ public class Operation {
     }
 
     public static void find(String[] args) {
-        Repository.find(getCommitMessageFromArgs(args));
+        Repository.find(getMessage(args));
     }
 
     public static void status() {
         Repository.status();
     }
 
-    public static void checkout(String[] args) {
-        if (args.length == 4) {
-            String commitId = args[1];
-            String fileName = args[3];
-            Repository.checkoutCommitFile(commitId, fileName);
-        } else if (args.length == 3) {
-            String fileName = args[2];
-            Repository.checkoutFileName(fileName);
+    public static void checkOut(String[] args) {
+        if (args.length == 3) {
+            if (!args[1].equals("--")) {
+                System.out.println("Incorrect operands.");
+                System.exit(0);
+            }
+            Repository.checkOutUseFileName(args[2]);
+        } else if (args.length == 4) {
+            if (!args[2].equals("--")) {
+                System.out.println("Incorrect operands");
+                System.exit(0);
+            }
+            Repository.checkOutUseCommitIdAndFileName(args[1], args[3]);
         } else if (args.length == 2) {
-            String branchName = args[1];
-            Repository.checkoutBranch(branchName);
+            Repository.checkOutUseBranchName(args[1]);
+        } else {
+            System.out.println("Incorrect operands");
+            System.exit(0);
         }
     }
 }

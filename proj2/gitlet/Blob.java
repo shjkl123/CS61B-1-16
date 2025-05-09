@@ -2,49 +2,43 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
+import java.rmi.server.UID;
 
-//wait
 public class Blob implements Serializable {
-
-    private File file;
-    private byte[] fileByte;
-    private final String id;
     private final String fileName;
-    private final String fileContent;
+    private final byte[] fileByte;
+    private final String filePath;
+    private final String id;
+
     Blob(File file) {
-        this.file = file;
+        this.fileName = file.getName();
+        filePath = file.getPath();
         fileByte = Utils.readContents(file);
         id = generateId();
-        fileName = file.getName();
-        fileContent = Utils.readContentsAsString(file);
-    }
-
-    public File getFile() {
-        return file;
-    }
-
-    public String getFileName() {
-        return file.getName();
-    }
-
-    public String getFileContent() {
-        return fileContent;
     }
 
     private String generateId() {
-        return Utils.sha1(fileByte, file.getName());
+        return Utils.sha1(fileName, filePath, fileByte);
+    }
+
+    //store blob like hashMap
+    public void saveBlob() {
+        File dir = Utils.join(Repository.GITLET_BLOBS, id.substring(0, 2));
+        if (!dir.exists()) dir.mkdir();
+        File pos = Utils.join(dir, id.substring(2));
+        Utils.writeObject(pos, this);
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getFileName() {
+        return fileName;
     }
 
     @Override
     public String toString() {
         return id;
-    }
-
-    public void saveBlob() {
-        String id = generateId();
-        File dir = Utils.join(Repository.GITLET_BLOBS, id.substring(0, 2));
-        if (!dir.exists()) dir.mkdir();
-        File file = Utils.join(dir, id.substring(2));
-        Utils.writeObject(file, this);
     }
 }

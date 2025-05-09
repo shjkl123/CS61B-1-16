@@ -25,107 +25,91 @@ public class Commit implements Serializable {
 
     /** The message of this Commit. */
     private final String message;
-    private final List<Commit> parent = new ArrayList<>();
-    private final List<Blob> blobs = new LinkedList<>();
-    private final Map<String, String> pathToBlob = new HashMap<>();
-    //fileName to blobId
-    private final String timeStamp;
-    private final String id;
+    private final Map<String, String> pathToBlobID = new HashMap<>();
+    private final List<Commit> parents = new ArrayList<>();
+    private final Date date;
+    private String timeStamp;
+    private String id;
     /* TODO: fill in the rest of this class. */
 
-    Commit(String message, Commit[] parent, Blob[] blobs) {
-        this.message = message;
-        if (parent != null) this.parent.addAll(List.of(parent));
-        Date currentTime;
-        if (parent == null) currentTime = new Date(0);
-        else currentTime = new Date();
-        DateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
-        timeStamp = dateFormat.format(currentTime);
-        if (blobs != null) {
-            this.blobs.addAll(Arrays.asList(blobs));
-            for (Blob b : blobs) {
-                pathToBlob.put(b.getFile().getName(), b.toString());
-            }
-        }
-        id = generateId();
+    //initial commit
+    Commit() {
+        message = "initial commit";
+        date = new Date(0);
     }
 
+    //expect initial commit
+    Commit(String message) {
+        this.message = message;
+        this.date = new Date();
+        parents.add(Repository.getHeadCommit());
+    }
+
+    private static String dateToTimeStamp(Date date) {
+        DateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy z", Locale.US);
+        return dateFormat.format(date);
+    }
 
     private String generateId() {
-        return Utils.sha1(message, timeStamp, parent.toString(), pathToBlob.toString());
+        return Utils.sha1(message, parents.toString(), timeStamp, pathToBlobID.toString());
     }
 
     @Override
     public String toString() {
-         return id;
+        return id;
     }
 
-
+    //compare parent and save addStageFile
     public void saveCommit() {
-        String id = generateId();
+        timeStamp = dateToTimeStamp(date);
+        id = generateId();
+        if (!parents.isEmpty()) {
+            //wait merge to change it
+            Map<String, String> parentMap = parents.get(0).pathToBlobID;
+            for (String fileNameSha1 : parentMap.keySet()) {
+                if (!Repository.isFileInAddStage(fileNameSha1) &&
+                    !Repository.isFileInRemoveStage(fileNameSha1)) {
+                    pathToBlobID.put(fileNameSha1, parentMap.get(fileNameSha1));
+                }
+            }
+            Repository.saveAllAddStageFile(pathToBlobID);
+            Repository.deleteAllRemoveStageFile();
+        }
         File file = Utils.join(Repository.GITLET_COMMITS, id);
         Utils.writeObject(file, this);
     }
 
-    public boolean isFileInCommit(String fileName) {
-        return getFile(fileName) != null;
-    }
-
-    public boolean isFileInCommit(File file) {
-        String blobId = pathToBlob.get(file.getName());
+    //return true if the fileContent is changed
+    public boolean isStoredFile(File file) {
+        String value = pathToBlobID.get(Utils.sha1(file.getName()));
+        if (value == null) return false;
         Blob b = new Blob(file);
-        return b.toString().equals(blobId);
+        return value.equals(b.toString());
     }
 
-    public void removeFile(File file) {
-        Blob b = new Blob(file);
-        blobs.remove(b);
+    //return true if the file is saved
+    public boolean isStoredFile(String fileName) {
+        return pathToBlobID.containsKey(Utils.sha1(fileName));
     }
 
-    public boolean isInitCommit() {
-        return parent.isEmpty();
-    }
-
-    public List<Commit> getParent() {
-        return parent;
-    }
-
-    public String getMessage() {
-        return message;
+    public Map<String, String> getPathToBlobID() {
+        return pathToBlobID;
     }
 
     public String getTimeStamp() {
         return timeStamp;
     }
 
-    public String getId() {
-        return id;
+    public String getMessage() {
+        return message;
     }
 
-    public File getFile(String fileName) {
-        return getFileBlob(fileName).getFile();
+    public Commit getParent(int index) {
+        if (parents.isEmpty()) return null;
+        return parents.get(index);
     }
 
-    public Blob getFileBlob(String fileName) {
-        String blobId = pathToBlob.get(fileName);
-        if (blobId == null) return null;
-        File dir = Utils.join(Repository.GITLET_BLOBS, blobId.substring(0, 2));
-        File file = Utils.join(dir, blobId.substring(2));
-        if (!file.exists()) return null;
-        return Utils.readObject(file, Blob.class);
+    public List<Commit> getParents() {
+        return parents;
     }
-
-    public List<File> getAllFiles() {
-        List<File> allFile = new ArrayList<>();
-        for (Blob b : blobs) {
-            allFile.add(b.getFile());
-        }
-        return allFile;
-    }
-
-    public boolean isFileStoredInThisCommit(String fileName) {
-        return getFileBlob(fileName) != null;
-    }
-
-
 }
