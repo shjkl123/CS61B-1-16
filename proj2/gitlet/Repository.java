@@ -62,9 +62,11 @@ public class Repository {
 
     //head commit also current working commit
     public static Commit getHeadCommit() {
-        String commitPath = readContentsAsString(join(GITLET_HEAD, "head"));
+        /*String commitPath = readContentsAsString(join(GITLET_HEAD, "head"));
         File pos = join(GITLET_COMMITS, commitPath);
-        return readObject(pos, Commit.class);
+        return readObject(pos, Commit.class);*/
+        String branchName = readContentsAsString(join(GITLET_HEAD, "head"));
+        return getBranchCommit(branchName);
     }
 
     public static void getAllFileInDir(File dir, List<File> s) {
@@ -129,19 +131,25 @@ public class Repository {
         deleteAllFileInDir(GITLET_REMOVESTAGE);
     }
 
-    public static void setHead(Commit cmt) {
-        File file = join(GITLET_HEAD, "head");
-        writeContents(file, cmt.toString());
+    public static String getCurrentBranchName() {
+        return readContentsAsString(join(GITLET_HEAD, "head"));
     }
 
+    //change head commit
+    public static void setHead(String masterName) {
+       File file = join(GITLET_HEAD, "head");
+       writeContents(file, masterName);
+    }
+
+    //change branch commit
     public static void setBranch(Commit cmt, String branchName) {
         File file = join(GITLET_HEADS, branchName);
         writeContents(file, cmt.toString());
     }
 
+    //change master commit
     public static void setMaster(Commit cmt) {
-        File file = join(GITLET_HEADS, "master");
-        writeContents(file, cmt.toString());
+        setBranch(cmt, "master");
     }
 
     public static void addFileToAddStage(File file) {
@@ -150,7 +158,7 @@ public class Repository {
         writeObject(pos, b);
     }
 
-    private static Blob getBlob(String blobId) {
+    public static Blob getBlob(String blobId) {
         File dir = join(GITLET_BLOBS, blobId.substring(0, 2));
         return readObject(join(dir, blobId.substring(2)), Blob.class);
     }
@@ -171,15 +179,20 @@ public class Repository {
         Repository.setupPersistence();
         Commit initialCommit = new Commit();
         initialCommit.saveCommit();
-        setHead(initialCommit);
+        setMaster(initialCommit);
+        setHead("master");
+    }
+
+    private static boolean isFileInCWD(String fileName) {
+        return join(CWD, fileName).exists();
     }
 
     public static void add(String fileName) {
-        File file = join(CWD, fileName);
-        if (!file.exists()) {
+        if (!isFileInCWD(fileName)) {
             System.out.println("File does not exist.");
             System.exit(0);
         }
+        File file = join(CWD, fileName);
         Commit currentCommit = getHeadCommit();
         if (currentCommit.isStoredFile(file)) {
             if (isFileInAddStage(sha1(fileName)))
@@ -202,7 +215,7 @@ public class Repository {
         cmt.saveCommit();
         deleteAllRemoveStageFile();
         saveAllAddStageFile(cmt.getPathToBlobID());
-        setHead(cmt);
+        setBranch(cmt, getCurrentBranchName());
     }
 
     public static void rm(String fileName) {
@@ -269,14 +282,23 @@ public class Repository {
         }
     }
 
+    private static boolean isCurrentBranch(String branchName) {
+        /*Commit currentCommit = getHeadCommit();
+        String commitId = currentCommit.toString();
+        File file = join(GITLET_HEADS, branchName);
+        String fileContent = readContentsAsString(file);
+        return fileContent.equals(commitId);*/
+        return getCurrentBranchName().equals(branchName);
+    }
+
     private static void helpStatusBranches() {
         File[] files = GITLET_HEADS.listFiles();
         List<String> branchNames = new ArrayList<>();
-        Commit currentCommit = getHeadCommit();
-        String commitId = currentCommit.toString();
+        //Commit currentCommit = getHeadCommit();
+        //String commitId = currentCommit.toString();
         for (File f : files) {
-            String fileContent = readContentsAsString(f);
-            if (fileContent.equals(commitId))
+            //String fileContent = readContentsAsString(f);
+            if (isCurrentBranch(f.getName()))
                 System.out.println("*" + f.getName());
             else
                 branchNames.add(f.getName());
@@ -314,15 +336,98 @@ public class Repository {
         System.out.println("=== Utracked Files ===");
     }
 
-    public static void checkOutUseFileName(String fileName) {
-
+    //help the next function
+    private static void helpCheckOutFile(String fileName, Commit cmt) {
+        Blob fileBlob = cmt.getBlob(fileName);
+        if (fileBlob == null) {
+            System.out.println("File does not exist in that commit.");
+            System.exit(0);
+        }
+        File pos = join(CWD, fileName);
+        writeContents(pos, (Object) fileBlob.getFileByte());
     }
 
-    public static void checkOutUseCommitIdAndFileName(String CommitId, String fileName) {
+    public static void checkOutUseFileName(String fileName) {
+        Commit cmt = getHeadCommit();
+        helpCheckOutFile(fileName, cmt);
+    }
 
+    public static void checkOutUseCommitIdAndFileName(String commitId, String fileName) {
+        File commitFile = join(GITLET_COMMITS, commitId);
+        if (!commitFile.exists()) {
+            System.out.println("No commit with that id exists.");
+            System.exit(0);
+        }
+        Commit cmt = readObject(commitFile, Commit.class);
+        helpCheckOutFile(fileName, cmt);
+    }
+
+    //return true if the branch is existed
+    private static boolean isExistBranchName(String branchName) {
+        return join(GITLET_HEADS, branchName).exists();
+    }
+
+    private static Commit getBranchCommit(String branchName) {
+        String commitId = readContentsAsString(join(GITLET_HEADS, branchName));
+        return readObject(join(GITLET_COMMITS, commitId), Commit.class);
     }
 
     public static void checkOutUseBranchName(String branchName) {
+        if (!isExistBranchName(branchName)) {
+            System.out.println("No such branch exists.");
+            System.exit(0);
+        } else if (isCurrentBranch(branchName)) {
+            System.out.println("No need to checkout the current branch.");
+            System.exit(0);
+        }
+        Commit headCommit = getHeadCommit();
+        Commit branchCommit = getBranchCommit(branchName);
+        setHead(branchName);
+        List<Blob> branchCommitBlob = branchCommit.getAllBlob();
+        for (Blob b : branchCommitBlob) {
+            if (!headCommit.isStoredFile(b.getFileName())
+                    && isFileInCWD(b.getFileName())) {
+                System.out.println("There is an untracked file in the way; " +
+                        "delete it, or add and commit it first.");
+                System.exit(0);
+            }
+        }
 
+        List<File> fileList = new ArrayList<>();
+        getAllFileInDir(CWD, fileList);
+
+        for (Blob b : branchCommitBlob) {
+            String fileName = b.getFileName();
+            File f = join(CWD, fileName);
+            writeContents(f, (Object) b.getFileByte());
+        }
+
+        for (File f : fileList) {
+            if (headCommit.isStoredFile(f.getName())
+                    && !branchCommit.isStoredFile(f.getName()))
+                f.delete();
+        }
+    }
+
+    public static void branch(String branchName) {
+        if (isExistBranchName(branchName)) {
+            System.out.println("A branch with that name already exists.");
+            System.exit(0);
+        }
+        Commit cmt = getHeadCommit();
+        File pos = join(GITLET_HEADS, branchName);
+        writeContents(pos, cmt.toString());
+    }
+
+    public static void rmBranch(String branchName) {
+        if (!isExistBranchName(branchName)) {
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
+        } else if (isCurrentBranch(branchName)) {
+            System.out.println("Cannot remove the current branch.");
+            System.exit(0);
+        }
+        File pos = join(GITLET_HEADS, branchName);
+        pos.delete();
     }
 }

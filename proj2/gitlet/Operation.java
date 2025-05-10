@@ -65,4 +65,12 @@ public class Operation {
             System.exit(0);
         }
     }
+
+    public static void branch(String[] args) {
+        Repository.branch(args[1]);
+    }
+
+    public static void rmBranch(String[] args) {
+        Repository.rmBranch(args[1]);
+    }
 }

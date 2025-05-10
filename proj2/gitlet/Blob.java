@@ -41,4 +41,8 @@ public class Blob implements Serializable {
     public String toString() {
         return id;
     }
+
+    public byte[] getFileByte() {
+        return fileByte;
+    }
 }

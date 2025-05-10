@@ -63,6 +63,17 @@ public class Main {
                 HintIncorrectOperands(args, 1, 1);
                 Operation.status();
                 break;
+            case "checkout":
+                Operation.checkOut(args);
+                break;
+            case "branch":
+                HintIncorrectOperands(args, 2, 2);
+                Operation.branch(args);
+                break;
+            case "rm-branch":
+                HintIncorrectOperands(args, 2, 2);
+                Operation.rmBranch(args);
+                break;
             default:
                 System.out.println("No command with that name exists.");
                 break;

@@ -2,6 +2,8 @@ package gitlet;
 
 // TODO: any imports you need here
 
+import com.sun.source.doctree.UnknownInlineTagTree;
+
 import java.io.File;
 import java.io.Serializable;
 import java.text.DateFormat;
@@ -111,5 +113,19 @@ public class Commit implements Serializable {
 
     public List<Commit> getParents() {
         return parents;
+    }
+
+    public Blob getBlob(String fileName) {
+        if (!isStoredFile(fileName)) return null;
+        String blobId = pathToBlobID.get(Utils.sha1(fileName));
+        return Repository.getBlob(blobId);
+    }
+
+    public List<Blob> getAllBlob() {
+        List<Blob> allBlob = new ArrayList<>();
+        for (String blobId : pathToBlobID.values()) {
+            allBlob.add(Repository.getBlob(blobId));
+        }
+        return allBlob;
     }
 }
