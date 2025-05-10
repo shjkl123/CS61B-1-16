@@ -73,4 +73,12 @@ public class Operation {
     public static void rmBranch(String[] args) {
         Repository.rmBranch(args[1]);
     }
+
+    public static void reset(String[] args) {
+        Repository.reset(args[1]);
+    }
+
+    public static void merge(String[] args) {
+        Repository.merge(args[1]);
+    }
 }

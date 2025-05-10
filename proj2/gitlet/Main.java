@@ -74,6 +74,10 @@ public class Main {
                 HintIncorrectOperands(args, 2, 2);
                 Operation.rmBranch(args);
                 break;
+            case "reset":
+                HintIncorrectOperands(args, 2, 2);
+                Operation.reset(args);
+                break;
             default:
                 System.out.println("No command with that name exists.");
                 break;

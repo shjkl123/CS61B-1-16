@@ -333,7 +333,7 @@ public class Repository {
         System.out.println();
         System.out.println("=== Modifications Not Staged For Commit ===");
         System.out.println();
-        System.out.println("=== Utracked Files ===");
+        System.out.println("=== Untracked Files ===");
     }
 
     //help the next function
@@ -352,13 +352,24 @@ public class Repository {
         helpCheckOutFile(fileName, cmt);
     }
 
+    private static Commit getCommitUseShortCommitId(String commitId) {
+        File[] files = GITLET_COMMITS.listFiles();
+        for (File f : files) {
+            if (f.getName().startsWith(commitId))
+                return readObject(f, Commit.class);
+        }
+        return null;
+    }
+
+    //wait
     public static void checkOutUseCommitIdAndFileName(String commitId, String fileName) {
-        File commitFile = join(GITLET_COMMITS, commitId);
-        if (!commitFile.exists()) {
+        //File commitFile = join(GITLET_COMMITS, commitId);
+        Commit cmt = getCommitUseShortCommitId(commitId);
+        if (cmt == null) {
             System.out.println("No commit with that id exists.");
             System.exit(0);
         }
-        Commit cmt = readObject(commitFile, Commit.class);
+        //Commit cmt = readObject(commitFile, Commit.class);
         helpCheckOutFile(fileName, cmt);
     }
 
@@ -372,17 +383,9 @@ public class Repository {
         return readObject(join(GITLET_COMMITS, commitId), Commit.class);
     }
 
-    public static void checkOutUseBranchName(String branchName) {
-        if (!isExistBranchName(branchName)) {
-            System.out.println("No such branch exists.");
-            System.exit(0);
-        } else if (isCurrentBranch(branchName)) {
-            System.out.println("No need to checkout the current branch.");
-            System.exit(0);
-        }
+    private static void helpCheckOutAndReset(Commit branchCommit) {
         Commit headCommit = getHeadCommit();
-        Commit branchCommit = getBranchCommit(branchName);
-        setHead(branchName);
+
         List<Blob> branchCommitBlob = branchCommit.getAllBlob();
         for (Blob b : branchCommitBlob) {
             if (!headCommit.isStoredFile(b.getFileName())
@@ -407,6 +410,22 @@ public class Repository {
                     && !branchCommit.isStoredFile(f.getName()))
                 f.delete();
         }
+
+        deleteAllFileInDir(GITLET_ADDSTAGE);
+        deleteAllFileInDir(GITLET_REMOVESTAGE);
+    }
+
+    public static void checkOutUseBranchName(String branchName) {
+        if (!isExistBranchName(branchName)) {
+            System.out.println("No such branch exists.");
+            System.exit(0);
+        } else if (isCurrentBranch(branchName)) {
+            System.out.println("No need to checkout the current branch.");
+            System.exit(0);
+        }
+
+        helpCheckOutAndReset(getBranchCommit(branchName));
+        setHead(branchName);
     }
 
     public static void branch(String branchName) {
@@ -430,4 +449,18 @@ public class Repository {
         File pos = join(GITLET_HEADS, branchName);
         pos.delete();
     }
+
+    public static void reset(String commitId) {
+        Commit cmt = getCommitUseShortCommitId(commitId);
+        if (cmt == null) {
+            System.out.println("No commit with that id exists.");
+            System.exit(0);
+        }
+        helpCheckOutAndReset(cmt);
+    }
+
+    public static void merge(String branchName) {
+
+    }
+
 }
