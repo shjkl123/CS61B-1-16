@@ -12,6 +12,12 @@ public class Main {
         }
     }
 
+    public static void HintNoInit() {
+        if (!Repository.GITLET_DIR.exists()) {
+            System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+    }
     /** Usage: java gitlet.Main ARGS, where ARGS contains
      *  <COMMAND> <OPERAND1> <OPERAND2> ... 
      */
@@ -30,10 +36,12 @@ public class Main {
                 break;
             case "add":
                 // TODO: handle the `add [filename]` command
+                HintNoInit();
                 HintIncorrectOperands(args, 2, 2);
                 Operation.add(args);
                 break;
             case "commit":
+                HintNoInit();
                 if (args.length < 2) {
                     System.out.println("Please enter a commit message.");
                     System.exit(0);
@@ -41,18 +49,22 @@ public class Main {
                 Operation.commit(args);
                 break;
             case "rm":
+                HintNoInit();
                 HintIncorrectOperands(args, 2, 2);
                 Operation.rm(args);
                 break;
             case "log":
+                HintNoInit();
                 HintIncorrectOperands(args, 1, 1);
                 Operation.log();
                 break;
             case "global-log":
+                HintNoInit();
                 HintIncorrectOperands(args, 1, 1);
                 Operation.globalLog();
                 break;
             case "find":
+                HintNoInit();
                 if (args.length < 2) {
                     System.out.println("Please enter a commit message");
                     System.exit(0);
@@ -60,21 +72,26 @@ public class Main {
                 Operation.find(args);
                 break;
             case "status":
+                HintNoInit();
                 HintIncorrectOperands(args, 1, 1);
                 Operation.status();
                 break;
             case "checkout":
+                HintNoInit();
                 Operation.checkOut(args);
                 break;
             case "branch":
+                HintNoInit();
                 HintIncorrectOperands(args, 2, 2);
                 Operation.branch(args);
                 break;
             case "rm-branch":
+                HintNoInit();
                 HintIncorrectOperands(args, 2, 2);
                 Operation.rmBranch(args);
                 break;
             case "reset":
+                HintNoInit();
                 HintIncorrectOperands(args, 2, 2);
                 Operation.reset(args);
                 break;

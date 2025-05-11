@@ -188,17 +188,22 @@ public class Repository {
     }
 
     public static void add(String fileName) {
-        if (!isFileInCWD(fileName)) {
+        if (!isFileInCWD(fileName) && !isFileInRemoveStage(sha1(fileName))) {
             System.out.println("File does not exist.");
             System.exit(0);
         }
-        File file = join(CWD, fileName);
-        Commit currentCommit = getHeadCommit();
-        if (currentCommit.isStoredFile(file)) {
-            if (isFileInAddStage(sha1(fileName)))
-                join(GITLET_ADDSTAGE, sha1(fileName)).delete();
-        } else {
-            addFileToAddStage(file);
+        if (isFileInRemoveStage(sha1(fileName))) {
+            join(GITLET_REMOVESTAGE, sha1(fileName)).delete();
+        }
+        if (isFileInCWD(fileName)) {
+            File file = join(CWD, fileName);
+            Commit currentCommit = getHeadCommit();
+            if (currentCommit.isStoredFile(file)) {
+                if (isFileInAddStage(sha1(fileName)))
+                    join(GITLET_ADDSTAGE, sha1(fileName)).delete();
+            } else {
+                addFileToAddStage(file);
+            }
         }
     }
 
@@ -457,10 +462,11 @@ public class Repository {
             System.exit(0);
         }
         helpCheckOutAndReset(cmt);
+        setBranch(cmt, getCurrentBranchName());
     }
 
     public static void merge(String branchName) {
-
+        //wait
     }
 
 }
