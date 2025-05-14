@@ -483,7 +483,6 @@ public class Repository {
         map.put(cmt.toString(), 1);
         while (!queue.isEmpty()) {
             String p = queue.remove();
-            System.out.println(p);
             Set<String> parents = getParentsCommitId(p);
             for (String q : parents) {
                 if (!map.containsKey(q)) {

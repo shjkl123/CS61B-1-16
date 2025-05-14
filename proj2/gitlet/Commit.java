@@ -144,6 +144,7 @@ public class Commit implements Serializable {
     }
 
     public void saveMergeCommit(Commit headCommit) {
+        timeStamp = dateToTimeStamp(date);
         pathToBlobID.putAll(headCommit.getPathToBlobID());
         id = generateId();
         File pos = Utils.join(Repository.GITLET_COMMITS, id);
