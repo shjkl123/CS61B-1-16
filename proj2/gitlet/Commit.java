@@ -47,6 +47,12 @@ public class Commit implements Serializable {
         parents.add(Repository.getHeadCommit());
     }
 
+    Commit(String message, List<Commit> parents) {
+        this.message = message;
+        this.date = new Date();
+        this.parents.addAll(parents);
+    }
+
     private static String dateToTimeStamp(Date date) {
         DateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
         return dateFormat.format(date);
@@ -127,5 +133,17 @@ public class Commit implements Serializable {
             allBlob.add(Repository.getBlob(blobId));
         }
         return allBlob;
+    }
+
+    public Set<String> getAllFileName() {
+        Set<String> allFileName = new HashSet<>();
+        for (String blobId : pathToBlobID.values()) {
+            allFileName.add(Repository.getBlob(blobId).getFileName());
+        }
+        return allFileName;
+    }
+
+    public void saveMergeCommit(Commit headCommit) {
+        pathToBlobID.putAll(headCommit.getPathToBlobID());
     }
 }

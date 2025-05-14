@@ -4,10 +4,7 @@ import javax.swing.text.FieldView;
 import javax.swing.text.html.StyleSheet;
 import java.io.File;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -465,8 +462,198 @@ public class Repository {
         setBranch(cmt, getCurrentBranchName());
     }
 
-    public static void merge(String branchName) {
-        //wait
+    //use bfs track the commit and its depth
+    private static Map<Commit, Integer> BFS(Commit cmt) {
+        Map<Commit, Integer> map = new HashMap<>();
+        Queue<Commit> queue = new LinkedList<>();
+        queue.add(cmt);
+        map.put(cmt, 1);
+        while (!queue.isEmpty()) {
+            Commit p = queue.remove();
+            List<Commit> parents = p.getParents();
+            for (Commit q : parents) {
+                if (!map.containsKey(q)) {
+                    map.put(q, map.get(p) + 1);
+                    queue.add(q);
+                }
+            }
+        }
+        return map;
     }
 
+    private static Commit getSplitCommit(String branchName) {
+        Commit currentCommit = getHeadCommit();
+        Commit branchCommit = getBranchCommit(branchName);
+        Map<Commit, Integer> currentMap = BFS(currentCommit);
+        Map<Commit, Integer> branchMap = BFS(branchCommit);
+        Commit minCommit = null;
+        int minDepth = Integer.MAX_VALUE;
+        for (Commit cmt : currentMap.keySet()) {
+            if (branchMap.containsKey(cmt)) {
+                int deep = branchMap.get(cmt);
+                if (deep < minDepth) {
+                    minDepth = deep;
+                    minCommit = cmt;
+                }
+            }
+        }
+        return minCommit;
+    }
+
+    private static Set<String> getAllFileName(Commit headCommit, Commit branchCommit
+            , Commit splitCommit) {
+        Set<String> allFileName = new HashSet<>();
+        allFileName.addAll(headCommit.getAllFileName());
+        allFileName.addAll(branchCommit.getAllFileName());
+        allFileName.addAll(splitCommit.getAllFileName());
+        return allFileName;
+    }
+
+    //return true if the file is change in current commit compare prev commit
+    //don't generate null pointer
+    private static boolean isFileChanged(Commit prevCommit, Commit currentCommit
+            , String fileName) {
+        boolean flag1 = prevCommit.isStoredFile(fileName);
+        boolean flag2 = currentCommit.isStoredFile(fileName);
+        if (flag1 != flag2) return true;
+        if (flag1) {
+            Blob prevBlob = prevCommit.getBlob(fileName);
+            Blob currentBlob = currentCommit.getBlob(fileName);
+            return !prevBlob.toString().equals(currentBlob.toString());
+        }
+        return false;
+    }
+
+    private static void changeCWDFile(Blob b) {
+        File file = join(CWD, b.getFileName());
+        writeContents(file, (Object) b.getFileByte());
+    }
+
+    private static void addFileToAddStage(Blob b) {
+        File pos = join(GITLET_ADDSTAGE, sha1(b.getFileName()));
+        writeObject(pos, b);
+    }
+
+    private static void deleteCWDFile(String fileName) {
+        File pos = join(CWD, fileName);
+        pos.delete();
+    }
+
+    private static void addFileToRemoveStage(Blob b) {
+        File pos = join(GITLET_REMOVESTAGE, b.getFileName());
+        writeObject(pos, b);
+    }
+
+    public static void merge(String branchName) {
+        if (!isEmptyInAddStage() || !isEmptyInRemoveStage()) {
+            System.out.println("You have uncommitted changes.");
+            System.exit(0);
+        }
+        if (!isExistBranchName(branchName)) {
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
+        }
+        if (isCurrentBranch(branchName)) {
+            System.out.println("Cannot merge a branch with itself.");
+            System.exit(0);
+        }
+        Commit currentCommit = getHeadCommit();
+        Commit branchCommit = getBranchCommit(branchName);
+        Commit splitCommit = getSplitCommit(branchName);
+        if (currentCommit == splitCommit) {
+            setHead(branchName);
+            System.out.println("Current branch fast-forwarded.");
+            System.exit(0);
+        }
+        if (branchCommit == splitCommit) {
+            System.out.println("Given branch is an " +
+                    "ancestor of the current branch.");
+            System.exit(0);
+        }
+        Set<String> fileNames = getAllFileName(currentCommit, branchCommit, splitCommit);
+        for (String fileName : fileNames) {
+            //check
+            if (!currentCommit.isStoredFile(fileName)
+                    && isFileInCWD(fileName)) {
+                System.out.println("There is an untracked file in the way; " +
+                        "delete it, or add and commit it first.");
+                System.exit(0);
+            }
+        }
+
+
+        for (String fileName : fileNames) {
+            //big if and else if and else
+            if (!isFileChanged(splitCommit, currentCommit, fileName) &&
+                    isFileChanged(splitCommit, branchCommit, fileName)) {
+                if (splitCommit.isStoredFile(fileName)) {
+                    Blob b = splitCommit.getBlob(fileName);
+                    if (branchCommit.isStoredFile(fileName)) {
+                        //case 1
+                        addFileToAddStage(b);
+                        changeCWDFile(branchCommit.getBlob(fileName));
+                    } else {
+                        //case 6
+                        addFileToRemoveStage(b);
+                        deleteCWDFile(fileName);
+                    }
+                } else if (branchCommit.isStoredFile(fileName)) {
+                    //case 5
+                    Blob b = branchCommit.getBlob(fileName);
+                    addFileToRemoveStage(b);
+                    changeCWDFile(b);
+                }
+            } else if (isFileChanged(splitCommit, currentCommit, fileName)
+                    && !isFileChanged(splitCommit, branchCommit, fileName)) {
+                if (currentCommit.isStoredFile(fileName)) {
+                    //case 2 and case 4
+                    Blob b = currentCommit.getBlob(fileName);
+                    changeCWDFile(b);
+                } else {
+                    //case 7
+                    deleteCWDFile(fileName);
+                }
+            } else if (isFileChanged(splitCommit, currentCommit, fileName)
+                    && isFileChanged(splitCommit, branchCommit, fileName)) {
+                if (isFileChanged(currentCommit, branchCommit, fileName)) {
+                    //case 3a
+                    if (currentCommit.isStoredFile(fileName)) {
+                        Blob b = currentCommit.getBlob(fileName);
+                        changeCWDFile(b);
+                    } else {
+                        deleteCWDFile(fileName);
+                    }
+                } else {
+                    //case 3b
+                    //got a conflict
+                    String currentContent;
+                    String branchContent;
+                    if (currentCommit.isStoredFile(fileName))
+                        currentContent = currentCommit.getBlob(fileName).getFileContent();
+                    else
+                        currentContent = "\n";
+                    if (branchCommit.isStoredFile(fileName))
+                        branchContent = branchCommit.getBlob(fileName).getFileContent();
+                    else
+                        branchContent = "\n";
+                    File pos = join(CWD, fileName);
+                    String s = "<<<<<<< HEAD\n";
+                    s += currentContent;
+                    s += "=======\n";
+                    s += branchContent;
+                    s += ">>>>>>>\n";
+                    writeContents(pos, s);
+                    System.out.println("Encountered a merge conflict.");
+                }
+            }
+        }
+        //create a commit
+        List<Commit> parents = new ArrayList<>();
+        parents.add(currentCommit);
+        parents.add(branchCommit);
+        Commit cmt = new Commit("Merged " + branchName + "into" +
+                getCurrentBranchName() + ".", parents);
+        cmt.saveMergeCommit(currentCommit);
+        setBranch(cmt, getCurrentBranchName());
+    }
 }

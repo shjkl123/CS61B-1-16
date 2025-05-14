@@ -9,16 +9,17 @@ public class Blob implements Serializable {
     private final byte[] fileByte;
     private final String filePath;
     private final String id;
-
+    private final String fileContent;
     Blob(File file) {
         this.fileName = file.getName();
         filePath = file.getPath();
         fileByte = Utils.readContents(file);
         id = generateId();
+        fileContent = Utils.readContentsAsString(file);
     }
 
     private String generateId() {
-        return Utils.sha1(fileName, filePath, fileByte);
+        return Utils.sha1(fileName, filePath, fileByte, fileContent);
     }
 
     //store blob like hashMap
@@ -45,4 +46,9 @@ public class Blob implements Serializable {
     public byte[] getFileByte() {
         return fileByte;
     }
+
+    public String getFileContent() {
+        return fileContent;
+    }
+
 }
