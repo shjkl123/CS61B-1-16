@@ -19,7 +19,9 @@ public class Blob implements Serializable {
     }
 
     private String generateId() {
-        return Utils.sha1(fileName, filePath, fileByte, fileContent);
+        //the Utils.sha1(fileName, filePath, fileContent, fileByte) is wrong
+        //I don't know why
+        return Utils.sha1(fileName, filePath, fileByte);
     }
 
     //store blob like hashMap

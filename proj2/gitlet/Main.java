@@ -95,6 +95,11 @@ public class Main {
                 HintIncorrectOperands(args, 2, 2);
                 Operation.reset(args);
                 break;
+            case "merge":
+                HintNoInit();
+                HintIncorrectOperands(args, 2, 2);
+                Operation.merge(args);
+                break;
             default:
                 System.out.println("No command with that name exists.");
                 break;
