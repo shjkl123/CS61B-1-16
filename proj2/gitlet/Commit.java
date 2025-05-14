@@ -70,7 +70,6 @@ public class Commit implements Serializable {
     //compare parent and save addStageFile
     public void saveCommit() {
         timeStamp = dateToTimeStamp(date);
-        id = generateId();
         if (!parents.isEmpty()) {
             //wait merge to change it
             Map<String, String> parentMap = parents.get(0).pathToBlobID;
@@ -83,6 +82,7 @@ public class Commit implements Serializable {
             Repository.saveAllAddStageFile(pathToBlobID);
             Repository.deleteAllRemoveStageFile();
         }
+        id = generateId();
         File file = Utils.join(Repository.GITLET_COMMITS, id);
         Utils.writeObject(file, this);
     }
@@ -145,6 +145,7 @@ public class Commit implements Serializable {
 
     public void saveMergeCommit(Commit headCommit) {
         pathToBlobID.putAll(headCommit.getPathToBlobID());
+        id = generateId();
         File pos = Utils.join(Repository.GITLET_COMMITS, id);
         Utils.writeObject(pos, this);
     }
