@@ -147,6 +147,8 @@ public class Commit implements Serializable {
         timeStamp = dateToTimeStamp(date);
         pathToBlobID.putAll(headCommit.getPathToBlobID());
         id = generateId();
+        Repository.saveAllAddStageFile(pathToBlobID);
+        Repository.deleteAllRemoveStageFile();
         File pos = Utils.join(Repository.GITLET_COMMITS, id);
         Utils.writeObject(pos, this);
     }

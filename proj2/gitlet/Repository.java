@@ -613,7 +613,7 @@ public class Repository {
                 } else if (branchCommit.isStoredFile(fileName)) {
                     //case 5
                     Blob b = branchCommit.getBlob(fileName);
-                    addFileToRemoveStage(b);
+                    addFileToAddStage(b);
                     changeCWDFile(b);
                 }
             } else if (isFileChanged(splitCommit, currentCommit, fileName)
