@@ -145,5 +145,15 @@ public class Commit implements Serializable {
 
     public void saveMergeCommit(Commit headCommit) {
         pathToBlobID.putAll(headCommit.getPathToBlobID());
+        File pos = Utils.join(Repository.GITLET_COMMITS, id);
+        Utils.writeObject(pos, this);
+    }
+
+    public Set<String> getAllParentId() {
+        Set<String> parentId = new HashSet<>();
+        for (Commit p : parents) {
+            parentId.add(p.toString());
+        }
+        return parentId;
     }
 }

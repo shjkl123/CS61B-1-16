@@ -2,9 +2,11 @@ package gitlet;
 
 import javax.swing.text.FieldView;
 import javax.swing.text.html.StyleSheet;
+import java.awt.*;
 import java.io.File;
 
 import java.util.*;
+import java.util.List;
 
 import static gitlet.Utils.*;
 
@@ -462,16 +464,28 @@ public class Repository {
         setBranch(cmt, getCurrentBranchName());
     }
 
+    private static Commit getCommit(String commitId) {
+        File pos = join(GITLET_COMMITS, commitId);
+        return readObject(pos, Commit.class);
+    }
+
+    private static Set<String> getParentsCommitId(String commitId) {
+        Commit cmt = getCommit(commitId);
+        return cmt.getAllParentId();
+    }
+
     //use bfs track the commit and its depth
-    private static Map<Commit, Integer> BFS(Commit cmt) {
-        Map<Commit, Integer> map = new HashMap<>();
-        Queue<Commit> queue = new LinkedList<>();
-        queue.add(cmt);
-        map.put(cmt, 1);
+    private static Map<String, Integer> BFS(Commit cmt) {
+        //this is question
+        Map<String, Integer> map = new HashMap<>();
+        Queue<String> queue = new LinkedList<>();
+        queue.add(cmt.toString());
+        map.put(cmt.toString(), 1);
         while (!queue.isEmpty()) {
-            Commit p = queue.remove();
-            List<Commit> parents = p.getParents();
-            for (Commit q : parents) {
+            String p = queue.remove();
+            System.out.println(p);
+            Set<String> parents = getParentsCommitId(p);
+            for (String q : parents) {
                 if (!map.containsKey(q)) {
                     map.put(q, map.get(p) + 1);
                     queue.add(q);
@@ -482,22 +496,23 @@ public class Repository {
     }
 
     private static Commit getSplitCommit(String branchName) {
+        //it is the question
         Commit currentCommit = getHeadCommit();
         Commit branchCommit = getBranchCommit(branchName);
-        Map<Commit, Integer> currentMap = BFS(currentCommit);
-        Map<Commit, Integer> branchMap = BFS(branchCommit);
-        Commit minCommit = null;
+        Map<String, Integer> currentMap = BFS(currentCommit);
+        Map<String, Integer> branchMap = BFS(branchCommit);
+        String minCommitId = null;
         int minDepth = Integer.MAX_VALUE;
-        for (Commit cmt : currentMap.keySet()) {
-            if (branchMap.containsKey(cmt)) {
-                int deep = branchMap.get(cmt);
+        for (String cmtId: currentMap.keySet()) {
+            if (branchMap.containsKey(cmtId)) {
+                int deep = branchMap.get(cmtId);
                 if (deep < minDepth) {
                     minDepth = deep;
-                    minCommit = cmt;
+                    minCommitId = cmtId;
                 }
             }
         }
-        return minCommit;
+        return getCommit(minCommitId);
     }
 
     private static Set<String> getAllFileName(Commit headCommit, Commit branchCommit
@@ -580,7 +595,6 @@ public class Repository {
                 System.exit(0);
             }
         }
-
 
         for (String fileName : fileNames) {
             //big if and else if and else
