@@ -664,7 +664,7 @@ public class Repository {
         List<Commit> parents = new ArrayList<>();
         parents.add(currentCommit);
         parents.add(branchCommit);
-        Commit cmt = new Commit("Merged " + branchName + "into" +
+        Commit cmt = new Commit("Merged " + branchName + " into " +
                 getCurrentBranchName() + ".", parents);
         cmt.saveMergeCommit(currentCommit);
         setBranch(cmt, getCurrentBranchName());
