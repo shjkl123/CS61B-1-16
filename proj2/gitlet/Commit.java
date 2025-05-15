@@ -147,6 +147,7 @@ public class Commit implements Serializable {
         timeStamp = dateToTimeStamp(date);
         pathToBlobID.putAll(headCommit.getPathToBlobID());
         id = generateId();
+        //wait
         Repository.saveAllAddStageFile(pathToBlobID);
         Repository.deleteAllRemoveStageFile();
         File pos = Utils.join(Repository.GITLET_COMMITS, id);
@@ -159,5 +160,11 @@ public class Commit implements Serializable {
             parentId.add(p.toString());
         }
         return parentId;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof Commit)) return false;
+        return obj.toString().equals(this.id);
     }
 }

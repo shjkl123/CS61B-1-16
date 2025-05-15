@@ -574,12 +574,12 @@ public class Repository {
         Commit currentCommit = getHeadCommit();
         Commit branchCommit = getBranchCommit(branchName);
         Commit splitCommit = getSplitCommit(branchName);
-        if (currentCommit == splitCommit) {
+        if (currentCommit.equals(splitCommit)) {
             setHead(branchName);
             System.out.println("Current branch fast-forwarded.");
             System.exit(0);
         }
-        if (branchCommit == splitCommit) {
+        if (branchCommit.equals(splitCommit)) {
             System.out.println("Given branch is an " +
                     "ancestor of the current branch.");
             System.exit(0);
@@ -628,7 +628,7 @@ public class Repository {
                 }
             } else if (isFileChanged(splitCommit, currentCommit, fileName)
                     && isFileChanged(splitCommit, branchCommit, fileName)) {
-                if (isFileChanged(currentCommit, branchCommit, fileName)) {
+                if (!isFileChanged(currentCommit, branchCommit, fileName)) {
                     //case 3a
                     if (currentCommit.isStoredFile(fileName)) {
                         Blob b = currentCommit.getBlob(fileName);
