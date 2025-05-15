@@ -577,6 +577,7 @@ public class Repository {
         if (currentCommit.equals(splitCommit)) {
             setHead(branchName);
             System.out.println("Current branch fast-forwarded.");
+            checkOutUseBranchName(branchName);
             System.exit(0);
         }
         if (branchCommit.equals(splitCommit)) {
@@ -639,16 +640,16 @@ public class Repository {
                 } else {
                     //case 3b
                     //got a conflict
-                    String currentContent;
-                    String branchContent;
+                    String currentContent = "";
+                    String branchContent = "";
                     if (currentCommit.isStoredFile(fileName))
                         currentContent = currentCommit.getBlob(fileName).getFileContent();
-                    else
-                        currentContent = "\n";
+                    /*else
+                        currentContent = "\n";*/
                     if (branchCommit.isStoredFile(fileName))
                         branchContent = branchCommit.getBlob(fileName).getFileContent();
-                    else
-                        branchContent = "\n";
+                    /*else
+                        branchContent = "\n";*/
                     File pos = join(CWD, fileName);
                     String s = "<<<<<<< HEAD\n";
                     s += currentContent;
