@@ -575,7 +575,6 @@ public class Repository {
         Commit branchCommit = getBranchCommit(branchName);
         Commit splitCommit = getSplitCommit(branchName);
         if (currentCommit.equals(splitCommit)) {
-            setHead(branchName);
             System.out.println("Current branch fast-forwarded.");
             checkOutUseBranchName(branchName);
             System.exit(0);
