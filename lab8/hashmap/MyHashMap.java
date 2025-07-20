@@ -202,7 +202,7 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
        return get(key) != null;
     }
 
-    Set<Node> NodeSet() {
+    private Set<Node> NodeSet() {
         Set<Node> s = new HashSet<>();
         for (Collection<Node> p : buckets) {
             s.addAll(p);
